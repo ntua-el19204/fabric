@@ -69,7 +69,7 @@ func GenerateLocalMSP(
 	keystore := filepath.Join(mspDir, "keystore")
 
 	// generate private key
-	priv, err := csp.GeneratePrivateKey(keystore)
+	priv, err := csp.GenerateDilithium5PrivateKey(keystore)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func GenerateLocalMSP(
 		name,
 		ous,
 		nil,
-		&priv.PublicKey,
+		priv.PublicKey,
 		x509.KeyUsageDigitalSignature,
 		[]x509.ExtKeyUsage{},
 	)
@@ -135,7 +135,7 @@ func GenerateLocalMSP(
 	*/
 
 	// generate private key
-	tlsPrivKey, err := csp.GeneratePrivateKey(tlsDir)
+	tlsPrivKey, err := csp.GenerateDilithium5PrivateKey(tlsDir)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func GenerateLocalMSP(
 		name,
 		nil,
 		sans,
-		&tlsPrivKey.PublicKey,
+		tlsPrivKey.PublicKey,
 		x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
 		[]x509.ExtKeyUsage{
 			x509.ExtKeyUsageServerAuth,
@@ -228,7 +228,7 @@ func GenerateVerifyingMSP(
 	if err != nil {
 		return errors.WithMessage(err, "failed to create keystore directory")
 	}
-	priv, err := csp.GeneratePrivateKey(ksDir)
+	priv, err := csp.GenerateDilithium5PrivateKey(ksDir)
 	if err != nil {
 		return err
 	}
@@ -237,7 +237,7 @@ func GenerateVerifyingMSP(
 		signCA.Name,
 		nil,
 		nil,
-		&priv.PublicKey,
+		priv.PublicKey,
 		x509.KeyUsageDigitalSignature,
 		[]x509.ExtKeyUsage{},
 	)

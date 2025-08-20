@@ -8,6 +8,7 @@ package sw
 
 import (
 	"crypto/ecdsa"
+	dilithium5 "crypto/pqc/dilithium/dilithium5"
 	"crypto/rsa"
 	"crypto/x509"
 	"errors"
@@ -129,6 +130,10 @@ func (ki *x509PublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bc
 		return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.ECDSAGoPublicKeyImportOpts{})].KeyImport(
 			pk,
 			&bccsp.ECDSAGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
+	case *dilithium5.PublicKey:
+		return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.DILITHIUM5GoPublicKeyImportOpts{})].KeyImport(
+			pk,
+			&bccsp.DILITHIUM5GoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
 	case *rsa.PublicKey:
 		// This path only exists to support environments that use RSA certificate
 		// authorities to issue ECDSA certificates.
@@ -136,4 +141,15 @@ func (ki *x509PublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bc
 	default:
 		return nil, errors.New("Certificate's public key type not recognized. Supported keys: [ECDSA, RSA]")
 	}
+}
+
+type dilithium5GoPublicKeyImportOptsKeyImporter struct{}
+
+func (*dilithium5GoPublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (bccsp.Key, error) {
+	lowLevelKey, ok := raw.(*dilithium5.PublicKey)
+	if !ok {
+		return nil, errors.New("Invalid raw material. Expected *dilithium5.PublicKey.")
+	}
+
+	return &dilithium5PublicKey{lowLevelKey}, nil
 }

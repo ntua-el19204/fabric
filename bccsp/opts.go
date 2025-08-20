@@ -59,6 +59,9 @@ const (
 
 	// X509Certificate Label for X509 certificate related operation
 	X509Certificate = "X509Certificate"
+
+	// Post quantum digital signatures
+	DILITHIUM5 = "dilithium5"
 )
 
 // ECDSAKeyGenOpts contains options for ECDSA key generation.
@@ -262,5 +265,20 @@ func (opts *X509PublicKeyImportOpts) Algorithm() string {
 // Ephemeral returns true if the key to generate has to be ephemeral,
 // false otherwise.
 func (opts *X509PublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type DILITHIUM5GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *DILITHIUM5GoPublicKeyImportOpts) Algorithm() string {
+	return DILITHIUM5
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *DILITHIUM5GoPublicKeyImportOpts) Ephemeral() bool {
 	return opts.Temporary
 }

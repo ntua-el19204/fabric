@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 package ca_test
 
 import (
-	"crypto/ecdsa"
+	"crypto/pqc/dilithium/dilithium5"
 	"crypto/x509"
 	"io/ioutil"
 	"net"
@@ -35,7 +35,7 @@ const (
 	testPostalCode         = "123456"
 )
 
-func TestLoadCertificateECDSA(t *testing.T) {
+func TestLoadCertificate(t *testing.T) {
 	testDir, err := ioutil.TempDir("", "ca-test")
 	if err != nil {
 		t.Fatalf("Failed to create test directory: %s", err)
@@ -47,7 +47,7 @@ func TestLoadCertificateECDSA(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create certs directory: %s", err)
 	}
-	priv, err := csp.GeneratePrivateKey(certDir)
+	priv, err := csp.GenerateDilithium5PrivateKey(certDir)
 	require.NoError(t, err, "Failed to generate signed certificate")
 
 	// create our CA
@@ -65,12 +65,13 @@ func TestLoadCertificateECDSA(t *testing.T) {
 	)
 	require.NoError(t, err, "Error generating CA")
 
+	//fmt.Println(priv.PublicKey)
 	cert, err := rootCA.SignCertificate(
 		certDir,
 		testName3,
 		nil,
 		nil,
-		&priv.PublicKey,
+		priv.PublicKey,
 		x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
 		[]x509.ExtKeyUsage{x509.ExtKeyUsageAny},
 	)
@@ -174,7 +175,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create certs directory: %s", err)
 	}
-	priv, err := csp.GeneratePrivateKey(certDir)
+	priv, err := csp.GenerateDilithium5PrivateKey(certDir)
 	require.NoError(t, err, "Failed to generate signed certificate")
 
 	// create our CA
@@ -197,7 +198,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 		testName,
 		nil,
 		nil,
-		&priv.PublicKey,
+		priv.PublicKey,
 		x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
 		[]x509.ExtKeyUsage{x509.ExtKeyUsageAny},
 	)
@@ -212,7 +213,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 		testName,
 		nil,
 		nil,
-		&priv.PublicKey,
+		priv.PublicKey,
 		x509.KeyUsageDigitalSignature,
 		[]x509.ExtKeyUsage{},
 	)
@@ -221,7 +222,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 
 	// make sure ous are correctly set
 	ous := []string{"TestOU", "PeerOU"}
-	cert, err = rootCA.SignCertificate(certDir, testName, ous, nil, &priv.PublicKey,
+	cert, err = rootCA.SignCertificate(certDir, testName, ous, nil, priv.PublicKey,
 		x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{})
 	require.NoError(t, err)
 	require.Contains(t, cert.Subject.OrganizationalUnit, ous[0])
@@ -229,7 +230,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 
 	// make sure sans are correctly set
 	sans := []string{testName2, testName3, testIP}
-	cert, err = rootCA.SignCertificate(certDir, testName, nil, sans, &priv.PublicKey,
+	cert, err = rootCA.SignCertificate(certDir, testName, nil, sans, priv.PublicKey,
 		x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{})
 	require.NoError(t, err)
 	require.Contains(t, cert.DNSNames, testName2)
@@ -242,7 +243,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 	require.Equal(t, true, checkForFile(pemFile),
 		"Expected to find file "+pemFile)
 
-	_, err = rootCA.SignCertificate(certDir, "empty/CA", nil, nil, &priv.PublicKey,
+	_, err = rootCA.SignCertificate(certDir, "empty/CA", nil, nil, priv.PublicKey,
 		x509.KeyUsageKeyEncipherment, []x509.ExtKeyUsage{x509.ExtKeyUsageAny})
 	require.Error(t, err, "Bad name should fail")
 
@@ -251,7 +252,7 @@ func TestGenerateSignCertificate(t *testing.T) {
 		Name:     "badCA",
 		SignCert: &x509.Certificate{},
 	}
-	_, err = badCA.SignCertificate(certDir, testName, nil, nil, &ecdsa.PublicKey{},
+	_, err = badCA.SignCertificate(certDir, testName, nil, nil, dilithium5.PublicKey{},
 		x509.KeyUsageKeyEncipherment, []x509.ExtKeyUsage{x509.ExtKeyUsageAny})
 	require.Error(t, err, "Empty CA should not be able to sign")
 }

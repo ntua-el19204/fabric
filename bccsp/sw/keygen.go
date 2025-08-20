@@ -19,6 +19,7 @@ package sw
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	dilithium5 "crypto/pqc/dilithium/dilithium5"
 	"crypto/rand"
 	"fmt"
 
@@ -49,4 +50,17 @@ func (kg *aesKeyGenerator) KeyGen(opts bccsp.KeyGenOpts) (bccsp.Key, error) {
 	}
 
 	return &aesPrivateKey{lowLevelKey, false}, nil
+}
+
+type dilithium5KeyGenerator struct {
+	curve elliptic.Curve
+}
+
+func (kg *dilithium5KeyGenerator) KeyGen(opts bccsp.KeyGenOpts) (bccsp.Key, error) {
+	privKey, err := dilithium5.GenerateKey()
+	if err != nil {
+		return nil, fmt.Errorf("Failed generating DILITHIUM key: [%s]", err)
+	}
+
+	return &dilithium5PrivateKey{privKey}, nil
 }

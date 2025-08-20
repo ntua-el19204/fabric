@@ -9,6 +9,7 @@ package sw
 import (
 	"bytes"
 	"crypto/ecdsa"
+	dilithium5 "crypto/pqc/dilithium/dilithium5"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -142,6 +143,8 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PrivateKey:
 			return &ecdsaPrivateKey{k}, nil
+		case *dilithium5.PrivateKey:
+			return &dilithium5PrivateKey{k}, nil
 		default:
 			return nil, errors.New("secret key type not recognized")
 		}
@@ -155,6 +158,8 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PublicKey:
 			return &ecdsaPublicKey{k}, nil
+		case *dilithium5.PublicKey:
+			return &dilithium5PublicKey{k}, nil
 		default:
 			return nil, errors.New("public key type not recognized")
 		}
@@ -191,6 +196,23 @@ func (ks *fileBasedKeyStore) StoreKey(k bccsp.Key) (err error) {
 		if err != nil {
 			return fmt.Errorf("failed storing AES key [%s]", err)
 		}
+	case *dilithium5PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty OQS key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing DILITHIUM private key [%s]", err)
+		}
+
+	case *dilithium5PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty OQS public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing DILITHIUM public key [%s]", err)
+		}
 
 	default:
 		return fmt.Errorf("key type not reconigned [%s]", k)
@@ -223,6 +245,8 @@ func (ks *fileBasedKeyStore) searchKeystoreForSKI(ski []byte) (k bccsp.Key, err 
 		switch kk := key.(type) {
 		case *ecdsa.PrivateKey:
 			k = &ecdsaPrivateKey{kk}
+		case *dilithium5.PrivateKey:
+			k = &dilithium5PrivateKey{kk}
 		default:
 			continue
 		}
