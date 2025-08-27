@@ -218,11 +218,14 @@ func (msp *bccspmsp) getSigningIdentityFromConf(sidInfo *m.SigningIdentityInfo) 
 	}
 
 	// Find the matching private key in the BCCSP keystore
+	//fmt.Println("Public key SKI: ", pubKey.SKI())
 	privKey, err := msp.bccsp.GetKey(pubKey.SKI())
+	//fmt.Println(privKey, err)
 	// Less Secure: Attempt to import Private Key from KeyInfo, if BCCSP was not able to find the key
 	if err != nil {
 		mspLogger.Debugf("Could not find SKI [%s], trying KeyMaterial field: %+v\n", hex.EncodeToString(pubKey.SKI()), err)
 		if sidInfo.PrivateSigner == nil || sidInfo.PrivateSigner.KeyMaterial == nil {
+			//fmt.Println("Inside mspimpl.go in msp  ", sidInfo.PrivateSigner, sidInfo.PrivateSigner.KeyMaterial)
 			return nil, errors.New("KeyMaterial not found in SigningIdentityInfo")
 		}
 
@@ -230,9 +233,9 @@ func (msp *bccspmsp) getSigningIdentityFromConf(sidInfo *m.SigningIdentityInfo) 
 		if pemKey == nil {
 			return nil, errors.Errorf("%s: wrong PEM encoding", sidInfo.PrivateSigner.KeyIdentifier)
 		}
-		privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
+		privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.DILITHIUM5GoPublicKeyImportOpts{Temporary: true})
 		if err != nil {
-			return nil, errors.WithMessage(err, "getIdentityFromBytes error: Failed to import EC private key")
+			return nil, errors.WithMessage(err, "getIdentityFromBytes error: Failed to import DILITHIUM private key")
 		}
 	}
 

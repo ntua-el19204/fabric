@@ -27,6 +27,7 @@ import (
 // LoadPrivateKey loads a private key from a file in keystorePath.  It looks
 // for a file ending in "_sk" and expects a PEM-encoded PKCS8 EC private key.
 func LoadPrivateKey(keystorePath string) (*ecdsa.PrivateKey, error) {
+	//fmt.Println("Inside Load Private Key in csp.go")
 	var priv *ecdsa.PrivateKey
 
 	walkFunc := func(path string, info os.FileInfo, pathErr error) error {
@@ -51,6 +52,8 @@ func LoadPrivateKey(keystorePath string) (*ecdsa.PrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//fmt.Println("Inside LoadPrivateKey in csp.go  ", priv, err)
 
 	return priv, err
 }
@@ -97,6 +100,14 @@ func GeneratePrivateKey(keystorePath string) (*ecdsa.PrivateKey, error) {
 	return priv, err
 }
 
+// // compute Subject Key Identifier using RFC 7093, Section 2, Method 4
+// func computeDilithium5SKI(privKey *dilithium5.PrivateKey) []byte {
+// 	// Marshall the public key
+// 	hash := sha256.New()
+// 	hash.Write(privKey.PublicKey)
+// 	return hash.Sum(nil)
+// }
+
 // GenerateOqsPrivateKey creates a quantum-safe private key using Dilithium and stores
 // it in keystorePath.
 func GenerateDilithium5PrivateKey(keystorePath string) (*dilithium5.PrivateKey, error) {
@@ -112,7 +123,9 @@ func GenerateDilithium5PrivateKey(keystorePath string) (*dilithium5.PrivateKey, 
 
 	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Encoded})
 
+	//ski := computeDilithium5SKI(priv)
 	keyFile := filepath.Join(keystorePath, "priv_sk")
+
 	err = ioutil.WriteFile(keyFile, pemEncoded, 0o600)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to save private key to file %s", keyFile)

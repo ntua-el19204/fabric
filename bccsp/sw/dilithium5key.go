@@ -42,7 +42,7 @@ func (k *dilithium5PrivateKey) SKI() []byte {
 		return nil
 	}
 	hash := sha256.New()
-	hash.Write(k.privKey.Sk)
+	hash.Write(k.privKey.PublicKey)
 	return hash.Sum(nil)
 }
 
@@ -61,11 +61,11 @@ func (k *dilithium5PrivateKey) Private() bool {
 // PublicKey returns the corresponding public key part of an asymmetric public/private key pair.
 // This method returns an error in symmetric key schemes.
 func (k *dilithium5PrivateKey) PublicKey() (bccsp.Key, error) {
-	return &dilithium5PublicKey{&k.privKey.PublicKey}, nil
+	return &dilithium5PublicKey{k.privKey.PublicKey}, nil
 }
 
 type dilithium5PublicKey struct {
-	pubKey *dilithium5.PublicKey
+	pubKey dilithium5.PublicKey
 }
 
 // Bytes converts this key to its byte representation,
@@ -73,7 +73,9 @@ type dilithium5PublicKey struct {
 func (k *dilithium5PublicKey) Bytes() (raw []byte, err error) {
 	raw, err = x509.MarshalPKIXPublicKey(k.pubKey)
 	if err != nil {
+		//fmt.Printf("Marshalling error: %v\n", err)
 		return nil, fmt.Errorf("Failed marshalling key [%s]", err)
+
 	}
 	return
 }
@@ -84,8 +86,10 @@ func (k *dilithium5PublicKey) SKI() []byte {
 		return nil
 	}
 	hash := sha256.New()
-	hash.Write(*k.pubKey)
-	return hash.Sum(nil)
+	hash.Write(k.pubKey)
+	ski := hash.Sum(nil)
+	//fmt.Printf("DEBUG: Generated SKI for Dilithium5 key: %x\n", ski) // Add this
+	return ski
 }
 
 // Symmetric returns true if this key is a symmetric key,

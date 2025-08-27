@@ -1,0 +1,72 @@
+FROM golang:1.24.4
+
+# Install build dependencies (Ubuntu equivalents of their Alpine packages)
+RUN apt-get update && apt-get install -y \
+    bash \
+    binutils-gold \
+    gcc \
+    g++ \
+    git \
+    astyle \
+    cmake \
+    ninja-build \
+    libssl-dev \
+    pkg-config \
+    python3-pytest \
+    python3-pytest-xdist \
+    zip \
+    libxslt1-dev \
+    doxygen \
+    graphviz \
+    python3-yaml \
+    valgrind \
+    libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build liboqs (same pattern as theirs)
+WORKDIR /
+RUN git clone -b main https://github.com/open-quantum-safe/liboqs.git && \
+    git clone https://github.com/open-quantum-safe/liboqs-go
+
+WORKDIR /liboqs
+RUN mkdir build
+WORKDIR /liboqs/build
+RUN cmake -GNinja .. -DBUILD_SHARED_LIBS=ON -DOQS_BUILD_ONLY_LIB=ON && \
+    ninja && ninja install
+
+# Set environment variables (same as theirs)
+ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV PKG_CONFIG_PATH=/liboqs-go/.config
+
+# Use YOUR crypto package instead of theirs
+WORKDIR /usr/local/go/src/
+RUN rm -r crypto
+
+# Cache-buster to get latest version of your crypto
+ADD https://api.github.com/repos/ntua-el19204/PQCrypto/commits/main /tmp/cache-buster
+RUN git clone https://github.com/ntua-el19204/PQCrypto.git temp && \
+    mv temp/crypto . && \
+    rm -rf temp
+
+# Remove problematic examples
+RUN rm -rf crypto/liboqs-go/examples
+
+# Test that your crypto works
+RUN go build crypto/pqc/dilithium/dilithium5
+
+# Set Go environment (same as theirs)
+ENV GOPATH=/go
+WORKDIR /go
+
+# Clean up
+RUN rm -f /tmp/cache-buster && rm -rf /tmp/liboqs /tmp/liboqs-go
+
+
+# Build the image with your latest crypto changes
+# docker build -f Dockerfile.my-pqcrypto -t georgekyr/golang-pqcrypto:latest .
+
+# Login to Docker Hub (if not already logged in)
+# docker login
+
+# Push the updated base image
+# docker push georgekyr/golang-pqcrypto:latest

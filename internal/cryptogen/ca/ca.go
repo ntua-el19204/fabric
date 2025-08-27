@@ -190,7 +190,7 @@ func computeSKI(privKey *ecdsa.PrivateKey) []byte {
 func computeDilithium5SKI(privKey *dilithium5.PrivateKey) []byte {
 	// Marshall the public key
 	hash := sha256.New()
-	hash.Write(privKey.Sk)
+	hash.Write(privKey.PublicKey)
 	return hash.Sum(nil)
 }
 

@@ -158,7 +158,7 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PublicKey:
 			return &ecdsaPublicKey{k}, nil
-		case *dilithium5.PublicKey:
+		case dilithium5.PublicKey:
 			return &dilithium5PublicKey{k}, nil
 		default:
 			return nil, errors.New("public key type not recognized")
@@ -222,6 +222,7 @@ func (ks *fileBasedKeyStore) StoreKey(k bccsp.Key) (err error) {
 }
 
 func (ks *fileBasedKeyStore) searchKeystoreForSKI(ski []byte) (k bccsp.Key, err error) {
+	//fmt.Println("Inside searchKeyStoreForSKI in fielks.go  ", ski)
 	files, _ := ioutil.ReadDir(ks.path)
 	for _, f := range files {
 		if f.IsDir() {
@@ -244,14 +245,18 @@ func (ks *fileBasedKeyStore) searchKeystoreForSKI(ski []byte) (k bccsp.Key, err 
 
 		switch kk := key.(type) {
 		case *ecdsa.PrivateKey:
+			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside ecdsa in cases and the SKI is")
 			k = &ecdsaPrivateKey{kk}
 		case *dilithium5.PrivateKey:
+			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside dilihtium5 in cases and the SKI is")
 			k = &dilithium5PrivateKey{kk}
 		default:
+			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside default in cases and the SKI is")
 			continue
 		}
 
 		if !bytes.Equal(k.SKI(), ski) {
+			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go, inside cheching equal bytes", "key ski: ", k.SKI(), "ski: ", ski)
 			continue
 		}
 

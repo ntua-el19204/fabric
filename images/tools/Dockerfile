@@ -3,52 +3,36 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at:
-#
-# 	  http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
 
 ###############################################################################
-# Build image
+# Build image - Use your PQ crypto image
 ###############################################################################
 
-ARG UBUNTU_VER
-FROM ubuntu:${UBUNTU_VER} as builder
+FROM georgekyr/golang-pqcrypto:latest as builder
 
-ARG TARGETARCH
-ARG TARGETOS
 ARG FABRIC_VER
-ARG GO_VER
 ARG GO_TAGS
 
-RUN apt update && apt install -y \
-    git \
-    gcc \
-    curl \
-    make
+# Set PQ crypto environment
+ENV GOTOOLCHAIN=local
+ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV PKG_CONFIG_PATH=/liboqs-go/.config
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=/usr/local/go/bin:$PATH
 
-RUN curl -sL https://go.dev/dl/go${GO_VER}.${TARGETOS}-${TARGETARCH}.tar.gz | tar zxf - -C /usr/local
-ENV PATH="/usr/local/go/bin:$PATH"
+# Copy Fabric source
+ADD . $GOPATH/src/github.com/hyperledger/fabric
+WORKDIR $GOPATH/src/github.com/hyperledger/fabric
 
-ADD . .
-
+# Build tools with your PQ crypto
 RUN make tools GO_TAGS=${GO_TAGS} FABRIC_VER=${FABRIC_VER}
 
-
 ###############################################################################
-# Runtime image
+# Runtime image - Use fixed Ubuntu version
 ###############################################################################
 
-ARG UBUNTU_VER
-FROM ubuntu:${UBUNTU_VER}
+FROM ubuntu:24.04
 
 ARG TARGETARCH
 ARG TARGETOS
@@ -61,19 +45,22 @@ RUN apt update && apt install -y \
     jq \
     tzdata
 
+# Install Go in runtime (for tools that might need it)
 RUN curl -sL https://go.dev/dl/go${GO_VER}.${TARGETOS}-${TARGETARCH}.tar.gz | tar zxvf - -C /usr/local
 ENV PATH="/usr/local/go/bin:$PATH"
 
 # set up nsswitch.conf for Go's "netgo" implementation
-# - https://github.com/golang/go/blob/go1.9.1/src/net/conf.go#L194-L275
-# - docker run --rm debian:stretch grep '^hosts:' /etc/nsswitch.conf
 RUN echo 'hosts: files dns' > /etc/nsswitch.conf
 
-ENV     FABRIC_CFG_PATH /etc/hyperledger/fabric
-ENV     FABRIC_VER      ${FABRIC_VER}
+ENV FABRIC_CFG_PATH /etc/hyperledger/fabric
+ENV FABRIC_VER      ${FABRIC_VER}
+ENV LD_LIBRARY_PATH /usr/local/lib
 
-COPY    --from=builder  sampleconfig    ${FABRIC_CFG_PATH}
-COPY    --from=builder  build/bin       /usr/local/bin
+# Copy PQ crypto and built tools
+COPY --from=builder /usr/local/lib /usr/local/lib
+COPY --from=builder /usr/local/go/src/crypto /usr/local/go/src/crypto
+COPY --from=builder /go/src/github.com/hyperledger/fabric/sampleconfig ${FABRIC_CFG_PATH}
+COPY --from=builder /go/src/github.com/hyperledger/fabric/build/bin /usr/local/bin
 
-VOLUME  /etc/hyperledger/fabric
-VOLUME  /var/hyperledger
+VOLUME /etc/hyperledger/fabric
+VOLUME /var/hyperledger
