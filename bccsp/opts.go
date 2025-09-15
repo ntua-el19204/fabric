@@ -61,6 +61,7 @@ const (
 	X509Certificate = "X509Certificate"
 
 	// Post quantum digital signatures
+	DILITHIUM2 = "dilithium2"
 	DILITHIUM5 = "dilithium5"
 )
 
@@ -280,5 +281,20 @@ func (opts *DILITHIUM5GoPublicKeyImportOpts) Algorithm() string {
 // Ephemeral returns true if the key to generate has to be ephemeral,
 // false otherwise.
 func (opts *DILITHIUM5GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type DILITHIUM2GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *DILITHIUM2GoPublicKeyImportOpts) Algorithm() string {
+	return DILITHIUM2
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *DILITHIUM2GoPublicKeyImportOpts) Ephemeral() bool {
 	return opts.Temporary
 }

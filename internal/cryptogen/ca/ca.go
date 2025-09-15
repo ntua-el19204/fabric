@@ -9,12 +9,12 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/pqc/dilithium/dilithium2"
 	"crypto/pqc/dilithium/dilithium5"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/pem"
 	"io/ioutil"
 	"math/big"
@@ -28,16 +28,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	oidOqsSignature        = asn1.ObjectIdentifier{1, 2, 3, 4}
-	oidPublicKeydilithium5 = asn1.ObjectIdentifier{1, 5, 1, 2}
-)
-
-type pkixPublicKey struct {
-	Algorithm pkix.AlgorithmIdentifier
-	PublicKey asn1.BitString
-}
-
 type CA struct {
 	Name               string
 	Country            string
@@ -50,9 +40,153 @@ type CA struct {
 	SignCert           *x509.Certificate
 }
 
-// NewCA creates an instance of CA and saves the signing key pair in
+// NewCA creates an instance of CA using ECDSA signature and saves the signing key pair in
 // baseDir/name
 func NewCA(
+	baseDir,
+	org,
+	name,
+	country,
+	province,
+	locality,
+	orgUnit,
+	streetAddress,
+	postalCode string,
+) (*CA, error) {
+	var ca *CA
+
+	err := os.MkdirAll(baseDir, 0o755)
+	if err != nil {
+		return nil, err
+	}
+
+	priv, err := csp.GeneratePrivateKey(baseDir)
+	if err != nil {
+		return nil, err
+	}
+
+	template := x509Template()
+	// this is a CA
+	template.IsCA = true
+	template.KeyUsage |= x509.KeyUsageDigitalSignature |
+		x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign |
+		x509.KeyUsageCRLSign
+	template.ExtKeyUsage = []x509.ExtKeyUsage{
+		x509.ExtKeyUsageClientAuth,
+		x509.ExtKeyUsageServerAuth,
+	}
+
+	// set the organization for the subject
+	subject := subjectTemplateAdditional(country, province, locality, orgUnit, streetAddress, postalCode)
+	subject.Organization = []string{org}
+	subject.CommonName = name
+
+	template.Subject = subject
+	template.SubjectKeyId = computeSKI(priv)
+
+	x509Cert, err := genCertificateECDSA(
+		baseDir,
+		name,
+		&template,
+		&template,
+		&priv.PublicKey,
+		priv,
+	)
+	if err != nil {
+		return nil, err
+	}
+	ca = &CA{
+		Name: name,
+		Signer: &csp.ECDSASigner{
+			PrivateKey: priv,
+		},
+		SignCert:           x509Cert,
+		Country:            country,
+		Province:           province,
+		Locality:           locality,
+		OrganizationalUnit: orgUnit,
+		StreetAddress:      streetAddress,
+		PostalCode:         postalCode,
+	}
+
+	return ca, err
+}
+
+// NewCA creates an instance of CA using ECDSA signature and saves the signing key pair in
+// baseDir/name
+func NewDilithium2CA(
+	baseDir,
+	org,
+	name,
+	country,
+	province,
+	locality,
+	orgUnit,
+	streetAddress,
+	postalCode string,
+) (*CA, error) {
+	var ca *CA
+
+	err := os.MkdirAll(baseDir, 0o755)
+	if err != nil {
+		return nil, err
+	}
+
+	priv, err := csp.GenerateDilithium2PrivateKey(baseDir)
+	if err != nil {
+		return nil, err
+	}
+
+	template := x509Template()
+	// this is a CA
+	template.IsCA = true
+	template.KeyUsage |= x509.KeyUsageDigitalSignature |
+		x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign |
+		x509.KeyUsageCRLSign
+	template.ExtKeyUsage = []x509.ExtKeyUsage{
+		x509.ExtKeyUsageClientAuth,
+		x509.ExtKeyUsageServerAuth,
+	}
+
+	// set the organization for the subject
+	subject := subjectTemplateAdditional(country, province, locality, orgUnit, streetAddress, postalCode)
+	subject.Organization = []string{org}
+	subject.CommonName = name
+
+	template.Subject = subject
+	template.SubjectKeyId = computeDilithium2SKI(priv)
+
+	x509Cert, err := genCertificateDILITHIUM2(
+		baseDir,
+		name,
+		&template,
+		&template,
+		priv.PublicKey,
+		priv,
+	)
+	if err != nil {
+		return nil, err
+	}
+	ca = &CA{
+		Name: name,
+		Signer: &csp.DILITHIUM2Signer{
+			PrivateKey: priv,
+		},
+		SignCert:           x509Cert,
+		Country:            country,
+		Province:           province,
+		Locality:           locality,
+		OrganizationalUnit: orgUnit,
+		StreetAddress:      streetAddress,
+		PostalCode:         postalCode,
+	}
+
+	return ca, err
+}
+
+// NewCA creates an instance of CA using ECDSA signature and saves the signing key pair in
+// baseDir/name
+func NewDilithium5CA(
 	baseDir,
 	org,
 	name,
@@ -129,6 +263,114 @@ func (ca *CA) SignCertificate(
 	name string,
 	orgUnits,
 	alternateNames []string,
+	pub *ecdsa.PublicKey,
+	ku x509.KeyUsage,
+	eku []x509.ExtKeyUsage,
+) (*x509.Certificate, error) {
+	template := x509Template()
+	template.KeyUsage = ku
+	template.ExtKeyUsage = eku
+
+	// set the organization for the subject
+	subject := subjectTemplateAdditional(
+		ca.Country,
+		ca.Province,
+		ca.Locality,
+		ca.OrganizationalUnit,
+		ca.StreetAddress,
+		ca.PostalCode,
+	)
+	subject.CommonName = name
+
+	subject.OrganizationalUnit = append(subject.OrganizationalUnit, orgUnits...)
+
+	template.Subject = subject
+	for _, san := range alternateNames {
+		// try to parse as an IP address first
+		ip := net.ParseIP(san)
+		if ip != nil {
+			template.IPAddresses = append(template.IPAddresses, ip)
+		} else {
+			template.DNSNames = append(template.DNSNames, san)
+		}
+	}
+
+	cert, err := genCertificateECDSA(
+		baseDir,
+		name,
+		&template,
+		ca.SignCert,
+		pub,
+		ca.Signer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return cert, nil
+}
+
+// SignDilithium5Certificate creates a dilithium2 signed certificate based on a built-in template
+// and saves it in baseDir/name
+func (ca *CA) SignDilithium2Certificate(
+	baseDir,
+	name string,
+	orgUnits,
+	alternateNames []string,
+	pub dilithium2.PublicKey,
+	ku x509.KeyUsage,
+	eku []x509.ExtKeyUsage,
+) (*x509.Certificate, error) {
+	template := x509Template()
+	template.KeyUsage = ku
+	template.ExtKeyUsage = eku
+
+	// set the organization for the subject
+	subject := subjectTemplateAdditional(
+		ca.Country,
+		ca.Province,
+		ca.Locality,
+		ca.OrganizationalUnit,
+		ca.StreetAddress,
+		ca.PostalCode,
+	)
+	subject.CommonName = name
+
+	subject.OrganizationalUnit = append(subject.OrganizationalUnit, orgUnits...)
+
+	template.Subject = subject
+	for _, san := range alternateNames {
+		// try to parse as an IP address first
+		ip := net.ParseIP(san)
+		if ip != nil {
+			template.IPAddresses = append(template.IPAddresses, ip)
+		} else {
+			template.DNSNames = append(template.DNSNames, san)
+		}
+	}
+
+	cert, err := genCertificateDILITHIUM2(
+		baseDir,
+		name,
+		&template,
+		ca.SignCert,
+		pub,
+		ca.Signer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return cert, nil
+}
+
+// SignDilithium5Certificate creates a dilithium5 signed certificate based on a built-in template
+// and saves it in baseDir/name
+func (ca *CA) SignDilithium5Certificate(
+	baseDir,
+	name string,
+	orgUnits,
+	alternateNames []string,
 	pub dilithium5.PublicKey,
 	ku x509.KeyUsage,
 	eku []x509.ExtKeyUsage,
@@ -186,7 +428,13 @@ func computeSKI(privKey *ecdsa.PrivateKey) []byte {
 	return hash[:]
 }
 
-// compute Subject Key Identifier using RFC 7093, Section 2, Method 4
+func computeDilithium2SKI(privKey *dilithium2.PrivateKey) []byte {
+	// Marshall the public key
+	hash := sha256.New()
+	hash.Write(privKey.PublicKey)
+	return hash.Sum(nil)
+}
+
 func computeDilithium5SKI(privKey *dilithium5.PrivateKey) []byte {
 	// Marshall the public key
 	hash := sha256.New()
@@ -323,6 +571,73 @@ func LoadCertificateECDSA(certPath string) (*x509.Certificate, error) {
 }
 
 // generate a signed X509 certificate using DILITHIUM5
+func genCertificateDILITHIUM2(
+	baseDir,
+	name string,
+	template,
+	parent *x509.Certificate,
+	pub dilithium2.PublicKey,
+	priv interface{},
+) (*x509.Certificate, error) {
+	// create the x509 public cert
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
+	//fmt.Println(err)
+	if err != nil {
+		return nil, err
+	}
+	// write cert out to file
+	fileName := filepath.Join(baseDir, name+"-cert.pem")
+	certFile, err := os.Create(fileName)
+	if err != nil {
+		return nil, err
+	}
+	// pem encode the cert
+	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+	certFile.Close()
+	if err != nil {
+		return nil, err
+	}
+	x509Cert, err := x509.ParseCertificate(certBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	//fmt.Println(x509Cert)
+	return x509Cert, nil
+}
+
+// LoadCertificateDILITHIUM5 load a ecdsa cert from a file in cert path
+func LoadCertificateDILITHIUM2(certPath string) (*x509.Certificate, error) {
+	var cert *x509.Certificate
+	var err error
+
+	walkFunc := func(path string, info os.FileInfo, err error) error {
+		if strings.HasSuffix(path, ".pem") {
+			rawCert, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			block, _ := pem.Decode(rawCert)
+			if block == nil || block.Type != "CERTIFICATE" {
+				return errors.Errorf("%s: wrong PEM encoding", path)
+			}
+			cert, err = x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return errors.Errorf("%s: wrong DER encoding", path)
+			}
+		}
+		return nil
+	}
+
+	err = filepath.Walk(certPath, walkFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	return cert, err
+}
+
+// generate a signed X509 certificate using DILITHIUM5
 func genCertificateDILITHIUM5(
 	baseDir,
 	name string,
@@ -356,4 +671,35 @@ func genCertificateDILITHIUM5(
 
 	//fmt.Println(x509Cert)
 	return x509Cert, nil
+}
+
+// LoadCertificateDILITHIUM5 load a ecdsa cert from a file in cert path
+func LoadCertificateDILITHIUM5(certPath string) (*x509.Certificate, error) {
+	var cert *x509.Certificate
+	var err error
+
+	walkFunc := func(path string, info os.FileInfo, err error) error {
+		if strings.HasSuffix(path, ".pem") {
+			rawCert, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			block, _ := pem.Decode(rawCert)
+			if block == nil || block.Type != "CERTIFICATE" {
+				return errors.Errorf("%s: wrong PEM encoding", path)
+			}
+			cert, err = x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return errors.Errorf("%s: wrong DER encoding", path)
+			}
+		}
+		return nil
+	}
+
+	err = filepath.Walk(certPath, walkFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	return cert, err
 }

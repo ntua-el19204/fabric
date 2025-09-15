@@ -306,7 +306,7 @@ func extendPeerOrg(orgSpec OrgSpec) {
 	caDir := filepath.Join(orgDir, "ca")
 	tlscaDir := filepath.Join(orgDir, "tlsca")
 
-	signCA := getCA(caDir, orgSpec, orgSpec.CA.CommonName)
+	signCA := getDilithium5CA(caDir, orgSpec, orgSpec.CA.CommonName)
 	tlsCA := getCA(tlscaDir, orgSpec, "tls"+orgSpec.CA.CommonName)
 
 	generateNodes(peersDir, orgSpec.Specs, signCA, tlsCA, msp.PEER, orgSpec.EnableNodeOUs)
@@ -355,7 +355,7 @@ func extendOrdererOrg(orgSpec OrgSpec) {
 		return
 	}
 
-	signCA := getCA(caDir, orgSpec, orgSpec.CA.CommonName)
+	signCA := getDilithium5CA(caDir, orgSpec, orgSpec.CA.CommonName)
 	tlsCA := getCA(tlscaDir, orgSpec, "tls"+orgSpec.CA.CommonName)
 
 	generateNodes(orderersDir, orgSpec.Specs, signCA, tlsCA, msp.ORDERER, orgSpec.EnableNodeOUs)
@@ -519,7 +519,7 @@ func generatePeerOrg(baseDir string, orgSpec OrgSpec) {
 	usersDir := filepath.Join(orgDir, "users")
 	adminCertsDir := filepath.Join(mspDir, "admincerts")
 	// generate signing CA
-	signCA, err := ca.NewCA(caDir, orgName, orgSpec.CA.CommonName, orgSpec.CA.Country, orgSpec.CA.Province, orgSpec.CA.Locality, orgSpec.CA.OrganizationalUnit, orgSpec.CA.StreetAddress, orgSpec.CA.PostalCode)
+	signCA, err := ca.NewDilithium5CA(caDir, orgName, orgSpec.CA.CommonName, orgSpec.CA.Country, orgSpec.CA.Province, orgSpec.CA.Locality, orgSpec.CA.OrganizationalUnit, orgSpec.CA.StreetAddress, orgSpec.CA.PostalCode)
 	if err != nil {
 		fmt.Printf("Error generating signCA for org %s:\n%v\n", orgName, err)
 		os.Exit(1)
@@ -635,7 +635,7 @@ func generateOrdererOrg(baseDir string, orgSpec OrgSpec) {
 	usersDir := filepath.Join(orgDir, "users")
 	adminCertsDir := filepath.Join(mspDir, "admincerts")
 	// generate signing CA
-	signCA, err := ca.NewCA(caDir, orgName, orgSpec.CA.CommonName, orgSpec.CA.Country, orgSpec.CA.Province, orgSpec.CA.Locality, orgSpec.CA.OrganizationalUnit, orgSpec.CA.StreetAddress, orgSpec.CA.PostalCode)
+	signCA, err := ca.NewDilithium5CA(caDir, orgName, orgSpec.CA.CommonName, orgSpec.CA.Country, orgSpec.CA.Province, orgSpec.CA.Locality, orgSpec.CA.OrganizationalUnit, orgSpec.CA.StreetAddress, orgSpec.CA.PostalCode)
 	if err != nil {
 		fmt.Printf("Error generating signCA for org %s:\n%v\n", orgName, err)
 		os.Exit(1)
@@ -717,6 +717,23 @@ func printVersion() {
 func getCA(caDir string, spec OrgSpec, name string) *ca.CA {
 	priv, _ := csp.LoadPrivateKey(caDir)
 	cert, _ := ca.LoadCertificateECDSA(caDir)
+
+	return &ca.CA{
+		Name:               name,
+		Signer:             priv,
+		SignCert:           cert,
+		Country:            spec.CA.Country,
+		Province:           spec.CA.Province,
+		Locality:           spec.CA.Locality,
+		OrganizationalUnit: spec.CA.OrganizationalUnit,
+		StreetAddress:      spec.CA.StreetAddress,
+		PostalCode:         spec.CA.PostalCode,
+	}
+}
+
+func getDilithium5CA(caDir string, spec OrgSpec, name string) *ca.CA {
+	priv, _ := csp.LoadDilithium5PrivateKey(caDir)
+	cert, _ := ca.LoadCertificateDILITHIUM5(caDir)
 
 	return &ca.CA{
 		Name:               name,

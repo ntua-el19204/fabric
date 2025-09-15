@@ -11,7 +11,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -100,7 +102,14 @@ func (sc *serverCreds) ClientHandshake(context.Context, string, net.Conn) (net.C
 
 // ServerHandshake does the authentication handshake for servers.
 func (sc *serverCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	sc.logger.Infof("ServerHandshake: from=%s", rawConn.RemoteAddr())
 	serverConfig := sc.serverConfig.Config()
+
+	// Debug
+	serverConfig.GetConfigForClient = func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
+		sc.logger.Infof("[comm] chi sigalgs: [%s] sni=%q from=%s", sigList(chi.SignatureSchemes), chi.ServerName, rawConn.RemoteAddr())
+		return nil, nil
+	}
 
 	conn := tls.Server(rawConn, &serverConfig)
 	l := sc.logger.With("remote address", conn.RemoteAddr().String())
@@ -170,4 +179,54 @@ func (dtc *DynamicClientCredentials) Clone() credentials.TransportCredentials {
 func (dtc *DynamicClientCredentials) OverrideServerName(name string) error {
 	dtc.TLSConfig.ServerName = name
 	return nil
+}
+
+// Debug
+// helpers (put near the bottom of creds.go or in a new file in the same package)
+func sigName(a tls.SignatureScheme) string {
+	switch a {
+	case tls.ECDSAWithP256AndSHA256:
+		return "ECDSA_P256_SHA256"
+	case tls.ECDSAWithP384AndSHA384:
+		return "ECDSA_P384_SHA384"
+	case tls.ECDSAWithP521AndSHA512:
+		return "ECDSA_P521_SHA512"
+	case tls.PKCS1WithSHA256:
+		return "RSA_PKCS1_SHA256"
+	case tls.PKCS1WithSHA384:
+		return "RSA_PKCS1_SHA384"
+	case tls.PKCS1WithSHA512:
+		return "RSA_PKCS1_SHA512"
+	case tls.PSSWithSHA256:
+		return "RSA_PSS_SHA256"
+	case tls.PSSWithSHA384:
+		return "RSA_PSS_SHA384"
+	case tls.PSSWithSHA512:
+		return "RSA_PSS_SHA512"
+	case tls.Ed25519:
+		return "Ed25519"
+	case tls.Falcon512:
+		return "Falcon512"
+	case tls.Falcon1024:
+		return "Falcon1024"
+	case tls.Dilithium2:
+		return "Dilithium2"
+	case tls.Dilithium3:
+		return "Dilithium3"
+	case tls.Dilithium5:
+		return "Dilithium5"
+	default:
+		return fmt.Sprintf("0x%04x", uint16(a))
+	}
+}
+
+func sigList(algs []tls.SignatureScheme) string {
+	if len(algs) == 0 {
+		return ""
+	}
+	names := make([]string, 0, len(algs))
+	for _, a := range algs {
+		names = append(names, sigName(a))
+	}
+	return strings.Join(names, ", ")
 }

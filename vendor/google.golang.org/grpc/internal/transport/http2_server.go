@@ -140,6 +140,8 @@ type http2Server struct {
 // underlying conn gets closed before the client preface could be read, it
 // returns a nil transport and a nil error.
 func NewServerTransport(conn net.Conn, config *ServerConfig) (_ ServerTransport, err error) {
+	// Debug
+	fmt.Println("Inside NewServerTransport")
 	var authInfo credentials.AuthInfo
 	rawConn := conn
 	if config.Credentials != nil {

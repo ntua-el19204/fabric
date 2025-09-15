@@ -9,6 +9,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/pqc/dilithium/dilithium2"
 	"crypto/pqc/dilithium/dilithium5"
 	"crypto/rand"
 	"crypto/x509"
@@ -27,7 +28,6 @@ import (
 // LoadPrivateKey loads a private key from a file in keystorePath.  It looks
 // for a file ending in "_sk" and expects a PEM-encoded PKCS8 EC private key.
 func LoadPrivateKey(keystorePath string) (*ecdsa.PrivateKey, error) {
-	//fmt.Println("Inside Load Private Key in csp.go")
 	var priv *ecdsa.PrivateKey
 
 	walkFunc := func(path string, info os.FileInfo, pathErr error) error {
@@ -53,7 +53,67 @@ func LoadPrivateKey(keystorePath string) (*ecdsa.PrivateKey, error) {
 		return nil, err
 	}
 
-	//fmt.Println("Inside LoadPrivateKey in csp.go  ", priv, err)
+	return priv, err
+}
+
+// LoadPrivateKey loads a private key from a file in keystorePath.  It looks
+// for a file ending in "_sk" and expects a PEM-encoded PKCS8 EC private key.
+func LoadDilithium2PrivateKey(keystorePath string) (*dilithium2.PrivateKey, error) {
+	var priv *dilithium2.PrivateKey
+
+	walkFunc := func(path string, info os.FileInfo, pathErr error) error {
+		if !strings.HasSuffix(path, "_sk") {
+			return nil
+		}
+
+		rawKey, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		priv, err = parseDilithium2PrivateKeyPEM(rawKey)
+		if err != nil {
+			return errors.WithMessage(err, path)
+		}
+
+		return nil
+	}
+
+	err := filepath.Walk(keystorePath, walkFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	return priv, err
+}
+
+// LoadPrivateKey loads a private key from a file in keystorePath.  It looks
+// for a file ending in "_sk" and expects a PEM-encoded PKCS8 EC private key.
+func LoadDilithium5PrivateKey(keystorePath string) (*dilithium5.PrivateKey, error) {
+	var priv *dilithium5.PrivateKey
+
+	walkFunc := func(path string, info os.FileInfo, pathErr error) error {
+		if !strings.HasSuffix(path, "_sk") {
+			return nil
+		}
+
+		rawKey, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		priv, err = parseDilithium5PrivateKeyPEM(rawKey)
+		if err != nil {
+			return errors.WithMessage(err, path)
+		}
+
+		return nil
+	}
+
+	err := filepath.Walk(keystorePath, walkFunc)
+	if err != nil {
+		return nil, err
+	}
 
 	return priv, err
 }
@@ -70,6 +130,42 @@ func parsePrivateKeyPEM(rawKey []byte) (*ecdsa.PrivateKey, error) {
 	}
 
 	priv, ok := key.(*ecdsa.PrivateKey)
+	if !ok {
+		return nil, errors.New("pem bytes do not contain an EC private key")
+	}
+	return priv, nil
+}
+
+func parseDilithium2PrivateKeyPEM(rawKey []byte) (*dilithium2.PrivateKey, error) {
+	block, _ := pem.Decode(rawKey)
+	if block == nil {
+		return nil, errors.New("bytes are not PEM encoded")
+	}
+
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, errors.WithMessage(err, "pem bytes are not PKCS8 encoded ")
+	}
+
+	priv, ok := key.(*dilithium2.PrivateKey)
+	if !ok {
+		return nil, errors.New("pem bytes do not contain an EC private key")
+	}
+	return priv, nil
+}
+
+func parseDilithium5PrivateKeyPEM(rawKey []byte) (*dilithium5.PrivateKey, error) {
+	block, _ := pem.Decode(rawKey)
+	if block == nil {
+		return nil, errors.New("bytes are not PEM encoded")
+	}
+
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, errors.WithMessage(err, "pem bytes are not PKCS8 encoded ")
+	}
+
+	priv, ok := key.(*dilithium5.PrivateKey)
 	if !ok {
 		return nil, errors.New("pem bytes do not contain an EC private key")
 	}
@@ -100,13 +196,31 @@ func GeneratePrivateKey(keystorePath string) (*ecdsa.PrivateKey, error) {
 	return priv, err
 }
 
-// // compute Subject Key Identifier using RFC 7093, Section 2, Method 4
-// func computeDilithium5SKI(privKey *dilithium5.PrivateKey) []byte {
-// 	// Marshall the public key
-// 	hash := sha256.New()
-// 	hash.Write(privKey.PublicKey)
-// 	return hash.Sum(nil)
-// }
+// GenerateOqsPrivateKey creates a quantum-safe private key using Dilithium and stores
+// it in keystorePath.
+func GenerateDilithium2PrivateKey(keystorePath string) (*dilithium2.PrivateKey, error) {
+	priv, err := dilithium2.GenerateKey()
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to generate Dilithium private key")
+	}
+
+	pkcs8Encoded, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to marshal private key")
+	}
+
+	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Encoded})
+
+	//ski := computeDilithium2SKI(priv)
+	keyFile := filepath.Join(keystorePath, "priv_sk")
+
+	err = ioutil.WriteFile(keyFile, pemEncoded, 0o600)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to save private key to file %s", keyFile)
+	}
+
+	return priv, err
+}
 
 // GenerateOqsPrivateKey creates a quantum-safe private key using Dilithium and stores
 // it in keystorePath.
@@ -169,6 +283,26 @@ func (e *ECDSASigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts
 
 	// return marshaled signature
 	return asn1.Marshal(sig)
+}
+
+type DILITHIUM2Signer struct {
+	PrivateKey *dilithium2.PrivateKey
+}
+
+// Public returns the dilithium.PublicKey associated with PrivateKey.
+func (d *DILITHIUM2Signer) Public() crypto.PublicKey {
+	return d.PrivateKey.PublicKey
+}
+
+// Sign signs the digest.
+func (d *DILITHIUM2Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+	sig, err := d.PrivateKey.SignPQC(digest)
+	if err != nil {
+		return nil, err
+	}
+
+	// return marshaled signature
+	return sig, err
 }
 
 type DILITHIUM5Signer struct {

@@ -9,6 +9,7 @@ package sw
 import (
 	"bytes"
 	"crypto/ecdsa"
+	dilithium2 "crypto/pqc/dilithium/dilithium2"
 	dilithium5 "crypto/pqc/dilithium/dilithium5"
 	"encoding/hex"
 	"errors"
@@ -143,6 +144,8 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PrivateKey:
 			return &ecdsaPrivateKey{k}, nil
+		case *dilithium2.PrivateKey:
+			return &dilithium2PrivateKey{k}, nil
 		case *dilithium5.PrivateKey:
 			return &dilithium5PrivateKey{k}, nil
 		default:
@@ -158,6 +161,8 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PublicKey:
 			return &ecdsaPublicKey{k}, nil
+		case dilithium2.PublicKey:
+			return &dilithium2PublicKey{k}, nil
 		case dilithium5.PublicKey:
 			return &dilithium5PublicKey{k}, nil
 		default:
@@ -195,6 +200,23 @@ func (ks *fileBasedKeyStore) StoreKey(k bccsp.Key) (err error) {
 		err = ks.storeKey(hex.EncodeToString(k.SKI()), kk.privKey)
 		if err != nil {
 			return fmt.Errorf("failed storing AES key [%s]", err)
+		}
+	case *dilithium2PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty OQS key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing DILITHIUM private key [%s]", err)
+		}
+
+	case *dilithium2PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty OQS public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing DILITHIUM public key [%s]", err)
 		}
 	case *dilithium5PrivateKey:
 		if kk.privKey == nil {
@@ -247,6 +269,9 @@ func (ks *fileBasedKeyStore) searchKeystoreForSKI(ski []byte) (k bccsp.Key, err 
 		case *ecdsa.PrivateKey:
 			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside ecdsa in cases and the SKI is")
 			k = &ecdsaPrivateKey{kk}
+		case *dilithium2.PrivateKey:
+			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside dilihtium5 in cases and the SKI is")
+			k = &dilithium2PrivateKey{kk}
 		case *dilithium5.PrivateKey:
 			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside dilihtium5 in cases and the SKI is")
 			k = &dilithium5PrivateKey{kk}

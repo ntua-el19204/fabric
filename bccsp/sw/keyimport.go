@@ -8,6 +8,7 @@ package sw
 
 import (
 	"crypto/ecdsa"
+	dilithium2 "crypto/pqc/dilithium/dilithium2"
 	dilithium5 "crypto/pqc/dilithium/dilithium5"
 	"crypto/rsa"
 	"crypto/x509"
@@ -130,6 +131,10 @@ func (ki *x509PublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bc
 		return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.ECDSAGoPublicKeyImportOpts{})].KeyImport(
 			pk,
 			&bccsp.ECDSAGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
+	case dilithium2.PublicKey:
+		return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.DILITHIUM2GoPublicKeyImportOpts{})].KeyImport(
+			pk,
+			&bccsp.DILITHIUM2GoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
 	case dilithium5.PublicKey:
 		return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.DILITHIUM5GoPublicKeyImportOpts{})].KeyImport(
 			pk,
@@ -152,4 +157,15 @@ func (*dilithium5GoPublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, op
 	}
 
 	return &dilithium5PublicKey{lowLevelKey}, nil
+}
+
+type dilithium2GoPublicKeyImportOptsKeyImporter struct{}
+
+func (*dilithium2GoPublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (bccsp.Key, error) {
+	lowLevelKey, ok := raw.(dilithium2.PublicKey)
+	if !ok {
+		return nil, errors.New("Invalid raw material. Expected *dilithium2.PublicKey.")
+	}
+
+	return &dilithium2PublicKey{lowLevelKey}, nil
 }

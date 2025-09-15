@@ -21,7 +21,7 @@ _arg_comp=('' )
 
 # if version not passed in, default to latest released version
 # if ca version not passed in, default to latest released version
-_arg_fabric_version="2.5.13"
+_arg_fabric_version="2.5.12"
 _arg_ca_version="1.5.15"
 
 REGISTRY=${FABRIC_DOCKER_REGISTRY:-docker.io/hyperledger}

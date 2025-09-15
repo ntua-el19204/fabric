@@ -60,11 +60,13 @@ func NewWithParams(securityLevel int, hashFamily string, keyStore bccsp.KeyStore
 
 	// Set the Signers
 	swbccsp.AddWrapper(reflect.TypeOf(&ecdsaPrivateKey{}), &ecdsaSigner{})
+	swbccsp.AddWrapper(reflect.TypeOf(&dilithium2PrivateKey{}), &dilithium2Signer{})
 	swbccsp.AddWrapper(reflect.TypeOf(&dilithium5PrivateKey{}), &dilithium5Signer{})
 
 	// Set the Verifiers
 	swbccsp.AddWrapper(reflect.TypeOf(&ecdsaPrivateKey{}), &ecdsaPrivateKeyVerifier{})
 	swbccsp.AddWrapper(reflect.TypeOf(&ecdsaPublicKey{}), &ecdsaPublicKeyKeyVerifier{})
+	swbccsp.AddWrapper(reflect.TypeOf(&dilithium2PublicKey{}), &dilithium2PublicKeyKeyVerifier{})
 	swbccsp.AddWrapper(reflect.TypeOf(&dilithium5PublicKey{}), &dilithium5PublicKeyKeyVerifier{})
 
 	// Set the Hashers
@@ -82,6 +84,7 @@ func NewWithParams(securityLevel int, hashFamily string, keyStore bccsp.KeyStore
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.AES256KeyGenOpts{}), &aesKeyGenerator{length: 32})
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.AES192KeyGenOpts{}), &aesKeyGenerator{length: 24})
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.AES128KeyGenOpts{}), &aesKeyGenerator{length: 16})
+	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.DILITHIUM2KeyGenOpts{}), &dilithium2KeyGenerator{})
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.DILITHIUM5KeyGenOpts{}), &dilithium5KeyGenerator{})
 
 	// Set the key deriver
@@ -96,6 +99,7 @@ func NewWithParams(securityLevel int, hashFamily string, keyStore bccsp.KeyStore
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.ECDSAPrivateKeyImportOpts{}), &ecdsaPrivateKeyImportOptsKeyImporter{})
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.ECDSAGoPublicKeyImportOpts{}), &ecdsaGoPublicKeyImportOptsKeyImporter{})
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.X509PublicKeyImportOpts{}), &x509PublicKeyImportOptsKeyImporter{bccsp: swbccsp})
+	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.DILITHIUM2GoPublicKeyImportOpts{}), &dilithium2GoPublicKeyImportOptsKeyImporter{})
 	swbccsp.AddWrapper(reflect.TypeOf(&bccsp.DILITHIUM5GoPublicKeyImportOpts{}), &dilithium5GoPublicKeyImportOptsKeyImporter{})
 
 	return swbccsp, nil
