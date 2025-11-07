@@ -9,8 +9,23 @@ package sw
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	dilithium2 "crypto/pqc/dilithium/dilithium2"
-	dilithium5 "crypto/pqc/dilithium/dilithium5"
+	"crypto/pqc/dilithium/dilithium2"
+	"crypto/pqc/dilithium/dilithium3"
+	"crypto/pqc/dilithium/dilithium5"
+	"crypto/pqc/falcon/falcon1024"
+	"crypto/pqc/falcon/falcon1024padded"
+	"crypto/pqc/falcon/falcon512"
+	"crypto/pqc/falcon/falcon512padded"
+	"crypto/pqc/mayo/mayo2"
+	"crypto/pqc/mayo/mayo3"
+	"crypto/pqc/mayo/mayo5"
+	"crypto/pqc/ov/oviii"
+	"crypto/pqc/ov/ovip"
+	"crypto/pqc/ov/ovv"
+	"crypto/pqc/snova/snova2454"
+	"crypto/pqc/snova/snova2455"
+	"crypto/pqc/snova/snova2583"
+	"crypto/pqc/snova/snova2965"
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/asn1"
@@ -116,8 +131,25 @@ func privateKeyToPEM(privateKey interface{}, pwd []byte) ([]byte, error) {
 			},
 		), nil
 
+	case *falcon512.PrivateKey, *falcon512padded.PrivateKey, *falcon1024.PrivateKey, *falcon1024padded.PrivateKey,
+		*dilithium2.PrivateKey, *dilithium3.PrivateKey, *dilithium5.PrivateKey,
+		*mayo2.PrivateKey, *mayo3.PrivateKey, *mayo5.PrivateKey,
+		*snova2454.PrivateKey, *snova2583.PrivateKey, *snova2455.PrivateKey, *snova2965.PrivateKey,
+		*ovip.PrivateKey, *oviii.PrivateKey, *ovv.PrivateKey:
+
+		raw, err := x509.MarshalPKCS8PrivateKey(k)
+		if err != nil {
+			return nil, err
+		}
+		return pem.EncodeToMemory(
+			&pem.Block{
+				Type:  "PRIVATE KEY",
+				Bytes: raw,
+			},
+		), nil
+
 	default:
-		return nil, errors.New("invalid key type. It must be *ecdsa.PrivateKey")
+		return nil, errors.New("invalid key type. It must be *ecdsa.PrivateKey or a quantum safe key")
 	}
 }
 
@@ -148,8 +180,31 @@ func privateKeyToEncryptedPEM(privateKey interface{}, pwd []byte) ([]byte, error
 
 		return pem.EncodeToMemory(block), nil
 
+	case *falcon512.PrivateKey, *falcon512padded.PrivateKey, *falcon1024.PrivateKey, *falcon1024padded.PrivateKey,
+		*dilithium2.PrivateKey, *dilithium3.PrivateKey, *dilithium5.PrivateKey,
+		*mayo2.PrivateKey, *mayo3.PrivateKey, *mayo5.PrivateKey,
+		*snova2454.PrivateKey, *snova2583.PrivateKey, *snova2455.PrivateKey, *snova2965.PrivateKey,
+		*ovip.PrivateKey, *oviii.PrivateKey, *ovv.PrivateKey:
+
+		raw, err := x509.MarshalPKCS8PrivateKey(k)
+		if err != nil {
+			return nil, err
+		}
+
+		block, err := x509.EncryptPEMBlock(
+			rand.Reader,
+			"PRIVATE KEY",
+			raw,
+			pwd,
+			x509.PEMCipherAES256)
+		if err != nil {
+			return nil, err
+		}
+
+		return pem.EncodeToMemory(block), nil
+
 	default:
-		return nil, errors.New("invalid key type. It must be *ecdsa.PrivateKey")
+		return nil, errors.New("invalid key type. It must be *[oqs].PrivateKey")
 	}
 }
 
@@ -160,11 +215,12 @@ func derToPrivateKey(der []byte) (key interface{}, err error) {
 
 	if key, err = x509.ParsePKCS8PrivateKey(der); err == nil {
 		switch key.(type) {
-		case *ecdsa.PrivateKey:
-			return
-		case *dilithium5.PrivateKey:
-			return
-		case *dilithium2.PrivateKey:
+		case *ecdsa.PrivateKey,
+			*falcon512.PrivateKey, *falcon512padded.PrivateKey, *falcon1024.PrivateKey, *falcon1024padded.PrivateKey,
+			*dilithium2.PrivateKey, *dilithium3.PrivateKey, *dilithium5.PrivateKey,
+			*mayo2.PrivateKey, *mayo3.PrivateKey, *mayo5.PrivateKey,
+			*snova2454.PrivateKey, *snova2583.PrivateKey, *snova2455.PrivateKey, *snova2965.PrivateKey,
+			*ovip.PrivateKey, *oviii.PrivateKey, *ovv.PrivateKey:
 			return
 		default:
 			return nil, errors.New("found unknown private key type in PKCS#8 wrapping")
@@ -175,7 +231,7 @@ func derToPrivateKey(der []byte) (key interface{}, err error) {
 		return
 	}
 
-	return nil, errors.New("invalid key type. The DER must contain an ecdsa.PrivateKey")
+	return nil, errors.New("invalid key type. The DER must contain an ecdsa.PrivateKey or a [oqs].PrivateKey")
 }
 
 func pemToPrivateKey(raw []byte, pwd []byte) (interface{}, error) {
@@ -269,40 +325,13 @@ func publicKeyToPEM(publicKey interface{}, pwd []byte) ([]byte, error) {
 	}
 
 	switch k := publicKey.(type) {
-	case *ecdsa.PublicKey:
-		if k == nil {
-			return nil, errors.New("invalid ecdsa public key. It must be different from nil")
-		}
-		PubASN1, err := x509.MarshalPKIXPublicKey(k)
-		if err != nil {
-			return nil, err
-		}
+	case *ecdsa.PublicKey,
+		falcon512.PublicKey, falcon512padded.PublicKey, falcon1024.PublicKey, falcon1024padded.PublicKey,
+		dilithium2.PublicKey, dilithium3.PublicKey, dilithium5.PublicKey,
+		mayo2.PublicKey, mayo3.PublicKey, mayo5.PublicKey,
+		snova2454.PublicKey, snova2583.PublicKey, snova2455.PublicKey, snova2965.PublicKey,
+		ovip.PublicKey, oviii.PublicKey, ovv.PublicKey:
 
-		return pem.EncodeToMemory(
-			&pem.Block{
-				Type:  "PUBLIC KEY",
-				Bytes: PubASN1,
-			},
-		), nil
-	case *dilithium2.PublicKey:
-		if k == nil {
-			return nil, errors.New("invalid dilithium2 public key. It must be different from nil")
-		}
-		PubASN1, err := x509.MarshalPKIXPublicKey(k)
-		if err != nil {
-			return nil, err
-		}
-
-		return pem.EncodeToMemory(
-			&pem.Block{
-				Type:  "PUBLIC KEY",
-				Bytes: PubASN1,
-			},
-		), nil
-	case *dilithium5.PublicKey:
-		if k == nil {
-			return nil, errors.New("invalid dilithium5 public key. It must be different from nil")
-		}
 		PubASN1, err := x509.MarshalPKIXPublicKey(k)
 		if err != nil {
 			return nil, err
@@ -322,9 +351,15 @@ func publicKeyToPEM(publicKey interface{}, pwd []byte) ([]byte, error) {
 
 func publicKeyToEncryptedPEM(publicKey interface{}, pwd []byte) ([]byte, error) {
 	switch k := publicKey.(type) {
-	case *ecdsa.PublicKey:
+	case *ecdsa.PublicKey,
+		falcon512.PublicKey, falcon512padded.PublicKey, falcon1024.PublicKey, falcon1024padded.PublicKey,
+		dilithium2.PublicKey, dilithium3.PublicKey, dilithium5.PublicKey,
+		mayo2.PublicKey, mayo3.PublicKey, mayo5.PublicKey,
+		snova2454.PublicKey, snova2583.PublicKey, snova2455.PublicKey, snova2965.PublicKey,
+		ovip.PublicKey, oviii.PublicKey, ovv.PublicKey:
+
 		if k == nil {
-			return nil, errors.New("invalid ecdsa public key. It must be different from nil")
+			return nil, errors.New("invalid public key. It must be different from nil")
 		}
 		raw, err := x509.MarshalPKIXPublicKey(k)
 		if err != nil {

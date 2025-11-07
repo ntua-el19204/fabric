@@ -6,8 +6,29 @@ SPDX-License-Identifier: Apache-2.0
 package msp
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/pqc/dilithium/dilithium2"
+	"crypto/pqc/dilithium/dilithium3"
+	"crypto/pqc/dilithium/dilithium5"
+	"crypto/pqc/falcon/falcon1024"
+	"crypto/pqc/falcon/falcon1024padded"
+	"crypto/pqc/falcon/falcon512"
+	"crypto/pqc/falcon/falcon512padded"
+	"crypto/pqc/mayo/mayo2"
+	"crypto/pqc/mayo/mayo3"
+	"crypto/pqc/mayo/mayo5"
+	"crypto/pqc/ov/oviii"
+	"crypto/pqc/ov/ovip"
+	"crypto/pqc/ov/ovv"
+	"crypto/pqc/snova/snova2454"
+	"crypto/pqc/snova/snova2455"
+	"crypto/pqc/snova/snova2583"
+	"crypto/pqc/snova/snova2965"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -15,7 +36,7 @@ import (
 	"github.com/hyperledger/fabric/internal/cryptogen/csp"
 	fabricmsp "github.com/hyperledger/fabric/msp"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -47,7 +68,10 @@ func GenerateLocalMSP(
 	tlsCA *ca.CA,
 	nodeType int,
 	nodeOUs bool,
+	keyAlg string,
 ) error {
+	//fmt.Println("Inside Generate Local MSP")
+	//fmt.Println("The keyalg alg is ", keyAlg)
 	// create folder structure
 	mspDir := filepath.Join(baseDir, "msp")
 	tlsDir := filepath.Join(baseDir, "tls")
@@ -68,55 +92,36 @@ func GenerateLocalMSP(
 	// get keystore path
 	keystore := filepath.Join(mspDir, "keystore")
 
+	// generate private key
+	priv, err := csp.GeneratePrivateKey(keystore, keyAlg)
+	if err != nil {
+		return err
+	}
+
+	//fmt.Println("Private Key is ", priv)
+	//fmt.Println()
+	//fmt.Println("Public Key is ", getPublicKey(priv))
+	//fmt.Println()
+
 	// generate X509 certificate using signing CA
-	var cert *x509.Certificate
 	var ous []string
 	if nodeOUs {
 		ous = []string{nodeOUMap[nodeType]}
 	}
-	if nodeType == CLIENT || nodeType == ADMIN {
-		// --- Client/Admin: ECDSA identity ---
-		ecdsaPriv, err := csp.GeneratePrivateKey(keystore)
-		if err != nil {
-			return err
-		}
-
-		// Issue the MSP signcert with an ECDSA CA (reuse tlsCA or a dedicated ECDSA identity CA)
-		// NOTE: adjust method name to match your ca.CA (see note below)
-		cert, err = tlsCA.SignCertificate(
-			filepath.Join(mspDir, "signcerts"),
-			name,
-			ous,
-			nil,
-			&ecdsaPriv.PublicKey,
-			x509.KeyUsageDigitalSignature,
-			nil,
-		)
-		if err != nil {
-			return err
-		}
-
-	} else {
-		// --- Peer/Orderer: Dilithium identity ---
-		dilPriv, err := csp.GenerateDilithium5PrivateKey(keystore)
-		if err != nil {
-			return err
-		}
-
-		// NOTE: adjust method name to match your ca.CA
-		cert, err = signCA.SignDilithium5Certificate(
-			filepath.Join(mspDir, "signcerts"),
-			name,
-			ous,
-			nil,
-			dilPriv.PublicKey,
-			x509.KeyUsageDigitalSignature,
-			nil,
-		)
-		if err != nil {
-			return err
-		}
+	cert, err := signCA.SignCertificate(
+		filepath.Join(mspDir, "signcerts"),
+		name,
+		ous,
+		nil,
+		getPublicKey(priv),
+		x509.KeyUsageDigitalSignature,
+		[]x509.ExtKeyUsage{},
+	)
+	if err != nil {
+		fmt.Println("Error in Sign Certificate")
+		return err
 	}
+
 	// write artifacts to MSP folders
 
 	// the signing CA certificate goes into cacerts
@@ -125,13 +130,7 @@ func GenerateLocalMSP(
 		signCA.SignCert,
 	)
 	if err != nil {
-		return err
-	}
-	err = x509Export(
-		filepath.Join(mspDir, "cacerts", x509Filename(tlsCA.Name)),
-		tlsCA.SignCert,
-	)
-	if err != nil {
+		fmt.Println("Error in x509 export")
 		return err
 	}
 	// the TLS CA certificate goes into tlscacerts
@@ -140,20 +139,13 @@ func GenerateLocalMSP(
 		tlsCA.SignCert,
 	)
 	if err != nil {
+		fmt.Println("Error in x509 export")
 		return err
 	}
 
 	// generate config.yaml if required
-	// ---- Mixed NodeOUs config ----
 	if nodeOUs {
-		// ECDSA CA for Client/Admin, Dilithium CA for Peer/Orderer
-		if err := exportMixedNodeOUs(
-			mspDir,
-			filepath.Join("cacerts", x509Filename(tlsCA.Name)),  // ECDSA CA file
-			filepath.Join("cacerts", x509Filename(signCA.Name)), // Dilithium CA file
-		); err != nil {
-			return err
-		}
+		exportConfig(mspDir, filepath.Join("cacerts", x509Filename(signCA.Name)), true)
 	}
 
 	// the signing identity goes into admincerts.
@@ -175,7 +167,7 @@ func GenerateLocalMSP(
 	*/
 
 	// generate private key
-	tlsPrivKey, err := csp.GeneratePrivateKey(tlsDir)
+	tlsPrivKey, err := csp.GeneratePrivateKey(tlsDir, "ecdsa")
 	if err != nil {
 		return err
 	}
@@ -186,7 +178,7 @@ func GenerateLocalMSP(
 		name,
 		nil,
 		sans,
-		&tlsPrivKey.PublicKey,
+		getPublicKey(tlsPrivKey),
 		x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
 		[]x509.ExtKeyUsage{
 			x509.ExtKeyUsageServerAuth,
@@ -220,67 +212,69 @@ func GenerateLocalMSP(
 	return nil
 }
 
-func GenerateVerifyingMSP(baseDir string, signCA, tlsCA *ca.CA, nodeOUs bool) error {
-	// create folder structure
-	if err := createFolderStructure(baseDir, false); err != nil {
+func GenerateVerifyingMSP(
+	baseDir string,
+	signCA,
+	tlsCA *ca.CA,
+	nodeOUs bool,
+	keyAlg string,
+) error {
+	// create folder structure and write artifacts to proper locations
+	err := createFolderStructure(baseDir, false)
+	if err != nil {
 		return err
 	}
-
-	// --- Put BOTH identity CAs in cacerts ---
-	if err := x509Export(
+	// the signing CA certificate goes into cacerts
+	err = x509Export(
 		filepath.Join(baseDir, "cacerts", x509Filename(signCA.Name)),
 		signCA.SignCert,
-	); err != nil {
+	)
+	if err != nil {
 		return err
 	}
-
-	if err := x509Export(
-		filepath.Join(baseDir, "cacerts", x509Filename(tlsCA.Name)),
-		tlsCA.SignCert,
-	); err != nil {
-		return err
-	}
-
-	// --- TLS trust root into tlscacerts (as you already do) ---
-	if err := x509Export(
+	// the TLS CA certificate goes into tlscacerts
+	err = x509Export(
 		filepath.Join(baseDir, "tlscacerts", x509Filename(tlsCA.Name)),
 		tlsCA.SignCert,
-	); err != nil {
-		return err
-	}
-
-	// --- NodeOUs config ---
-	if nodeOUs {
-		// ECDSA for Client/Admin, Dilithium for Peer/Orderer
-		return exportMixedNodeOUs(
-			baseDir,
-			filepath.Join("cacerts", x509Filename(tlsCA.Name)),  // ECDSA CA
-			filepath.Join("cacerts", x509Filename(signCA.Name)), // Dilithium CA
-		)
-	}
-
-	// --- nodeOUs == false: create throwaway admin (make it ECDSA & issue with ECDSA CA) ---
-	ksDir := filepath.Join(baseDir, "keystore")
-	if err := os.Mkdir(ksDir, 0o755); err != nil {
-		return errors.WithMessage(err, "failed to create keystore directory")
-	}
-	defer os.RemoveAll(ksDir)
-
-	ecdsaPriv, err := csp.GeneratePrivateKey(ksDir)
+	)
 	if err != nil {
 		return err
 	}
 
-	// If your ECDSA method is SignCertificateECDSA, use that here
-	if _, err := tlsCA.SignCertificate(
+	// generate config.yaml if required
+	if nodeOUs {
+		exportConfig(baseDir, "cacerts/"+x509Filename(signCA.Name), true)
+	}
+
+	// create a throwaway cert to act as an admin cert
+	// NOTE: the admincerts folder is going to be
+	// cleared up anyway by copyAdminCert, but
+	// we leave a valid admin for now for the sake
+	// of unit tests
+	if nodeOUs {
+		return nil
+	}
+
+	ksDir := filepath.Join(baseDir, "keystore")
+	err = os.Mkdir(ksDir, 0o755)
+	defer os.RemoveAll(ksDir)
+	if err != nil {
+		return errors.WithMessage(err, "failed to create keystore directory")
+	}
+	priv, err := csp.GeneratePrivateKey(ksDir, keyAlg)
+	if err != nil {
+		return err
+	}
+	_, err = signCA.SignCertificate(
 		filepath.Join(baseDir, "admincerts"),
-		tlsCA.Name,
+		signCA.Name,
 		nil,
 		nil,
-		&ecdsaPriv.PublicKey,
+		getPublicKey(priv),
 		x509.KeyUsageDigitalSignature,
 		[]x509.ExtKeyUsage{},
-	); err != nil {
+	)
+	if err != nil {
 		return err
 	}
 
@@ -308,6 +302,58 @@ func createFolderStructure(rootDir string, local bool) error {
 	}
 
 	return nil
+}
+
+func getPublicKey(priv crypto.PrivateKey) crypto.PublicKey {
+	switch kk := priv.(type) {
+	case *ecdsa.PrivateKey:
+		return &(kk.PublicKey)
+	case ed25519.PrivateKey:
+		return kk.Public()
+	// Post quantum digital signatures
+	// Falcon
+	case *falcon512.PrivateKey:
+		return (kk.PublicKey)
+	case *falcon1024.PrivateKey:
+		return (kk.PublicKey)
+	case *falcon512padded.PrivateKey:
+		return (kk.PublicKey)
+	case *falcon1024padded.PrivateKey:
+		return (kk.PublicKey)
+	// Dilithium
+	case *dilithium2.PrivateKey:
+		return (kk.PublicKey)
+	case *dilithium3.PrivateKey:
+		return (kk.PublicKey)
+	case *dilithium5.PrivateKey:
+		return (kk.PublicKey)
+	// Mayo
+	case *mayo2.PrivateKey:
+		return (kk.PublicKey)
+	case *mayo3.PrivateKey:
+		return (kk.PublicKey)
+	case *mayo5.PrivateKey:
+		return (kk.PublicKey)
+	// Snova
+	case *snova2454.PrivateKey:
+		return (kk.PublicKey)
+	case *snova2583.PrivateKey:
+		return (kk.PublicKey)
+	case *snova2455.PrivateKey:
+		return (kk.PublicKey)
+	case *snova2965.PrivateKey:
+		return (kk.PublicKey)
+	// UOV
+	case *ovip.PrivateKey:
+		return (kk.PublicKey)
+	case *oviii.PrivateKey:
+		return (kk.PublicKey)
+	case *ovv.PrivateKey:
+		return (kk.PublicKey)
+
+	default:
+		panic("unsupported key algorithm")
+	}
 }
 
 func x509Filename(name string) string {
@@ -370,33 +416,4 @@ func exportConfig(mspDir, caFile string, enable bool) error {
 	_, err = file.WriteString(string(configBytes))
 
 	return err
-}
-
-func exportMixedNodeOUs(mspDir, ecdsaCAFile, dilCAFile string) error {
-	cfg := &fabricmsp.Configuration{
-		NodeOUs: &fabricmsp.NodeOUs{
-			Enable: true,
-			ClientOUIdentifier: &fabricmsp.OrganizationalUnitIdentifiersConfiguration{
-				Certificate:                  ecdsaCAFile, // ECDSA CA
-				OrganizationalUnitIdentifier: CLIENTOU,
-			},
-			AdminOUIdentifier: &fabricmsp.OrganizationalUnitIdentifiersConfiguration{
-				Certificate:                  ecdsaCAFile, // ECDSA CA
-				OrganizationalUnitIdentifier: ADMINOU,
-			},
-			PeerOUIdentifier: &fabricmsp.OrganizationalUnitIdentifiersConfiguration{
-				Certificate:                  dilCAFile, // Dilithium CA
-				OrganizationalUnitIdentifier: PEEROU,
-			},
-			OrdererOUIdentifier: &fabricmsp.OrganizationalUnitIdentifiersConfiguration{
-				Certificate:                  dilCAFile, // Dilithium CA
-				OrganizationalUnitIdentifier: ORDEREROU,
-			},
-		},
-	}
-	b, err := yaml.Marshal(cfg)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(mspDir, "config.yaml"), b, 0o644)
 }

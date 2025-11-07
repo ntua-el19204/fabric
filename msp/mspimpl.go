@@ -233,9 +233,67 @@ func (msp *bccspmsp) getSigningIdentityFromConf(sidInfo *m.SigningIdentityInfo) 
 		if pemKey == nil {
 			return nil, errors.Errorf("%s: wrong PEM encoding", sidInfo.PrivateSigner.KeyIdentifier)
 		}
-		privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.DILITHIUM5GoPublicKeyImportOpts{Temporary: true})
+		privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
+
+		// PQ signatures
+		// Falcon
 		if err != nil {
-			return nil, errors.WithMessage(err, "getIdentityFromBytes error: Failed to import DILITHIUM private key")
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.FALCON512PrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.FALCON1024PrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.FALCON512PADDEDPrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.FALCON1024PADDEDPrivateKeyImportOpts{Temporary: true})
+		}
+		// Dilithium
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.DILITHIUM2PrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.DILITHIUM3PrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.DILITHIUM5PrivateKeyImportOpts{Temporary: true})
+		}
+		// Mayo
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.MAYO2PrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.MAYO3PrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.MAYO5PrivateKeyImportOpts{Temporary: true})
+		}
+		// Snova
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.SNOVA2454PrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.SNOVA2583PrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.SNOVA2455PrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.SNOVA2965PrivateKeyImportOpts{Temporary: true})
+		}
+		// UOV
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.OVIPPrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.OVIIIPrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.OVVPrivateKeyImportOpts{Temporary: true})
+		}
+		if err != nil {
+			return nil, errors.WithMessage(err, "failed to import private key with any supported scheme")
 		}
 	}
 

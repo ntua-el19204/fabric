@@ -46,8 +46,8 @@
 #   - unit-test - runs the go-test based unit tests
 #   - verify - runs unit tests for only the changed package tree
 
-UBUNTU_VER ?= 22.04
-FABRIC_VER ?= 2.5.12
+UBUNTU_VER ?= 24.04
+FABRIC_VER ?= 2.5.13
 
 # 3rd party image version
 # These versions are also set in the runners in ./integration/runners/

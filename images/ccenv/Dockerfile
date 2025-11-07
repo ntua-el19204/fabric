@@ -1,19 +1,37 @@
-# Copyright IBM Corp. All Rights Reserved.
+#
+# Copyright contributors to the Hyperledger Fabric project
+#
 # SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+#
+# 	  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
-ARG GO_VER
-ARG UBUNTU_VER
-FROM golang:${GO_VER}
-RUN apt-get update && apt-get install -y \
-	binutils-gold \
-	g++ \
-	gcc \
-	git \
-	libc6-dev \
-    && rm -rf /var/lib/apt/lists/*
+# ---------------------------------------
+#
+# ---------------------------------------
+FROM georgekyr/golang-pqcrypto:1.0
 
-RUN mkdir -p /chaincode/output /chaincode/input
-RUN groupadd -g 500 chaincode && \
-    useradd -u 500 -g chaincode -d /home/chaincode -m -s /bin/bash chaincode
-RUN chown -R chaincode:chaincode /chaincode
+RUN apt update && apt install -y \
+    binutils-gold \
+    curl \
+    g++ \
+    gcc \
+    git
+
+RUN addgroup --gid 500 chaincode
+RUN adduser  --disabled-password --gecos "" --uid 500 --gid 500 --home /home/chaincode chaincode
+
+RUN mkdir    -p /chaincode/output /chaincode/input
+RUN chown    -R chaincode:chaincode /chaincode
+
 USER chaincode

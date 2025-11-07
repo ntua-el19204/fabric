@@ -1,0 +1,40 @@
+/*
+Copyright IBM Corp. 2016 All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+package sw
+
+import (
+	"crypto/rand"
+
+	"github.com/hyperledger/fabric/bccsp"
+)
+
+type snova2454Signer struct{}
+
+func (s *snova2454Signer) Sign(k bccsp.Key, digest []byte, opts bccsp.SignerOpts) ([]byte, error) {
+	return k.(*snova2454PrivateKey).privKey.Sign(rand.Reader, digest, opts)
+}
+
+type snova2454PrivateKeyVerifier struct{}
+
+func (v *snova2454PrivateKeyVerifier) Verify(k bccsp.Key, signature, digest []byte, opts bccsp.SignerOpts) (bool, error) {
+	return false, nil
+}
+
+type snova2454PublicKeyKeyVerifier struct{}
+
+func (v *snova2454PublicKeyKeyVerifier) Verify(k bccsp.Key, signature, digest []byte, opts bccsp.SignerOpts) (bool, error) {
+	return k.(*snova2454PublicKey).pubKey.Verify(digest, signature), nil
+}

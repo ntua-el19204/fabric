@@ -61,8 +61,32 @@ const (
 	X509Certificate = "X509Certificate"
 
 	// Post quantum digital signatures
+	// Falcon
+	FALCON512        = "falcon512"
+	FALCON1024       = "falcon1024"
+	FALCON512PADDED  = "falcon512padded"
+	FALCON1024PADDED = "falcon1024padded"
+
+	// Dilihtium
 	DILITHIUM2 = "dilithium2"
+	DILITHIUM3 = "dilithium3"
 	DILITHIUM5 = "dilithium5"
+
+	// Mayo
+	MAYO2 = "mayo2"
+	MAYO3 = "mayo3"
+	MAYO5 = "mayo5"
+
+	// Snova
+	SNOVA2454 = "snova2454"
+	SNOVA2583 = "snova2583"
+	SNOVA2455 = "snova2455"
+	SNOVA2965 = "snova2965"
+
+	// UOV
+	OVIP  = "ovip"
+	OVIII = "oviii"
+	OVV   = "ovv"
 )
 
 // ECDSAKeyGenOpts contains options for ECDSA key generation.
@@ -269,18 +293,227 @@ func (opts *X509PublicKeyImportOpts) Ephemeral() bool {
 	return opts.Temporary
 }
 
-type DILITHIUM5GoPublicKeyImportOpts struct {
+//----------------------------
+/*
+Post Quantum Signatures
+*/
+//----------------------------
+
+/*
+Falcon
+*/
+
+// ---------------------------
+// Falcon512
+// FALCON512KeyGenOpts contains options for FALCON512 key generation.
+type FALCON512KeyGenOpts struct {
 	Temporary bool
 }
 
 // Algorithm returns the key generation algorithm identifier (to be used).
-func (opts *DILITHIUM5GoPublicKeyImportOpts) Algorithm() string {
-	return DILITHIUM5
+func (opts *FALCON512KeyGenOpts) Algorithm() string {
+	return FALCON512
 }
 
 // Ephemeral returns true if the key to generate has to be ephemeral,
 // false otherwise.
-func (opts *DILITHIUM5GoPublicKeyImportOpts) Ephemeral() bool {
+func (opts *FALCON512KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type FALCON512GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *FALCON512GoPublicKeyImportOpts) Algorithm() string {
+	return FALCON512
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON512GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type FALCON512PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *FALCON512PrivateKeyImportOpts) Algorithm() string {
+	return FALCON512
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON512PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// Falcon1024
+// FALCON1024KeyGenOpts contains options for FALCON1024 key generation.
+type FALCON1024KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *FALCON1024KeyGenOpts) Algorithm() string {
+	return FALCON1024
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON1024KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type FALCON1024GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *FALCON1024GoPublicKeyImportOpts) Algorithm() string {
+	return FALCON1024
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON1024GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type FALCON1024PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *FALCON1024PrivateKeyImportOpts) Algorithm() string {
+	return FALCON1024
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON1024PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// Falcon512padded
+// FALCON512PADDEDKeyGenOpts contains options for FALCON512PADDED key generation.
+type FALCON512PADDEDKeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *FALCON512PADDEDKeyGenOpts) Algorithm() string {
+	return FALCON512PADDED
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON512PADDEDKeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type FALCON512PADDEDGoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *FALCON512PADDEDGoPublicKeyImportOpts) Algorithm() string {
+	return FALCON512PADDED
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON512PADDEDGoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type FALCON512PADDEDPrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *FALCON512PADDEDPrivateKeyImportOpts) Algorithm() string {
+	return FALCON512PADDED
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON512PADDEDPrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// Falcon1024padded
+// FALCON1024PADDEDKeyGenOpts contains options for FALCON1024PADDED key generation.
+type FALCON1024PADDEDKeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *FALCON1024PADDEDKeyGenOpts) Algorithm() string {
+	return FALCON1024PADDED
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON1024PADDEDKeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type FALCON1024PADDEDGoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *FALCON1024PADDEDGoPublicKeyImportOpts) Algorithm() string {
+	return FALCON1024PADDED
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON1024PADDEDGoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type FALCON1024PADDEDPrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *FALCON1024PADDEDPrivateKeyImportOpts) Algorithm() string {
+	return FALCON1024PADDED
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *FALCON1024PADDEDPrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+/*
+Dilithium
+*/
+
+// ---------------------------
+// Dilithium2
+// DILITHIUM2KeyGenOpts contains options for DILITHIUM2 key generation.
+type DILITHIUM2KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *DILITHIUM2KeyGenOpts) Algorithm() string {
+	return DILITHIUM2
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *DILITHIUM2KeyGenOpts) Ephemeral() bool {
 	return opts.Temporary
 }
 
@@ -296,5 +529,608 @@ func (opts *DILITHIUM2GoPublicKeyImportOpts) Algorithm() string {
 // Ephemeral returns true if the key to generate has to be ephemeral,
 // false otherwise.
 func (opts *DILITHIUM2GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type DILITHIUM2PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *DILITHIUM2PrivateKeyImportOpts) Algorithm() string {
+	return DILITHIUM2
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *DILITHIUM2PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// Dilithium3
+// DILITHIUM3KeyGenOpts contains options for DILITHIUM3 key generation.
+type DILITHIUM3KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *DILITHIUM3KeyGenOpts) Algorithm() string {
+	return DILITHIUM3
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *DILITHIUM3KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type DILITHIUM3GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *DILITHIUM3GoPublicKeyImportOpts) Algorithm() string {
+	return DILITHIUM3
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *DILITHIUM3GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type DILITHIUM3PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *DILITHIUM3PrivateKeyImportOpts) Algorithm() string {
+	return DILITHIUM3
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *DILITHIUM3PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// Dilithium5
+// DILITHIUM5KeyGenOpts contains options for DILITHIUM5 key generation.
+type DILITHIUM5KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *DILITHIUM5KeyGenOpts) Algorithm() string {
+	return DILITHIUM5
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *DILITHIUM5KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type DILITHIUM5GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *DILITHIUM5GoPublicKeyImportOpts) Algorithm() string {
+	return DILITHIUM5
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *DILITHIUM5GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type DILITHIUM5PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *DILITHIUM5PrivateKeyImportOpts) Algorithm() string {
+	return DILITHIUM5
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *DILITHIUM5PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+/*
+Mayo
+*/
+
+// ---------------------------
+// Mayo2
+// MAYO2KeyGenOpts contains options for MAYO2 key generation.
+type MAYO2KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *MAYO2KeyGenOpts) Algorithm() string {
+	return MAYO2
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *MAYO2KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type MAYO2GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *MAYO2GoPublicKeyImportOpts) Algorithm() string {
+	return MAYO2
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *MAYO2GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type MAYO2PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *MAYO2PrivateKeyImportOpts) Algorithm() string {
+	return MAYO2
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *MAYO2PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// Mayo3
+// MAYO3KeyGenOpts contains options for MAYO3 key generation.
+type MAYO3KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *MAYO3KeyGenOpts) Algorithm() string {
+	return MAYO3
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *MAYO3KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type MAYO3GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *MAYO3GoPublicKeyImportOpts) Algorithm() string {
+	return MAYO3
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *MAYO3GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type MAYO3PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *MAYO3PrivateKeyImportOpts) Algorithm() string {
+	return MAYO3
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *MAYO3PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// Mayo5
+// MAYO5KeyGenOpts contains options for MAYO5 key generation.
+type MAYO5KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *MAYO5KeyGenOpts) Algorithm() string {
+	return MAYO5
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *MAYO5KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type MAYO5GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *MAYO5GoPublicKeyImportOpts) Algorithm() string {
+	return MAYO5
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *MAYO5GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type MAYO5PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *MAYO5PrivateKeyImportOpts) Algorithm() string {
+	return MAYO5
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *MAYO5PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+/*
+Snova
+*/
+
+// ---------------------------
+// Snova2454
+// SNOVA2454KeyGenOpts contains options for SNOVA2454 key generation.
+type SNOVA2454KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *SNOVA2454KeyGenOpts) Algorithm() string {
+	return SNOVA2454
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2454KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type SNOVA2454GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *SNOVA2454GoPublicKeyImportOpts) Algorithm() string {
+	return SNOVA2454
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2454GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type SNOVA2454PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *SNOVA2454PrivateKeyImportOpts) Algorithm() string {
+	return SNOVA2454
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2454PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// Snova2583
+// SNOVA2583KeyGenOpts contains options for SNOVA2583 key generation.
+type SNOVA2583KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *SNOVA2583KeyGenOpts) Algorithm() string {
+	return SNOVA2583
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2583KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type SNOVA2583GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *SNOVA2583GoPublicKeyImportOpts) Algorithm() string {
+	return SNOVA2583
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2583GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type SNOVA2583PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *SNOVA2583PrivateKeyImportOpts) Algorithm() string {
+	return SNOVA2583
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2583PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// Snova2455
+// SNOVA2455KeyGenOpts contains options for SNOVA2455 key generation.
+type SNOVA2455KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *SNOVA2455KeyGenOpts) Algorithm() string {
+	return SNOVA2455
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2455KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type SNOVA2455GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *SNOVA2455GoPublicKeyImportOpts) Algorithm() string {
+	return SNOVA2455
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2455GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type SNOVA2455PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *SNOVA2455PrivateKeyImportOpts) Algorithm() string {
+	return SNOVA2455
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2455PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// Snova2965
+// SNOVA2965KeyGenOpts contains options for SNOVA2965 key generation.
+type SNOVA2965KeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *SNOVA2965KeyGenOpts) Algorithm() string {
+	return SNOVA2965
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2965KeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type SNOVA2965GoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *SNOVA2965GoPublicKeyImportOpts) Algorithm() string {
+	return SNOVA2965
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2965GoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type SNOVA2965PrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *SNOVA2965PrivateKeyImportOpts) Algorithm() string {
+	return SNOVA2965
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *SNOVA2965PrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+/*
+UOV
+*/
+
+// ---------------------------
+// OVIP
+// OVIPKeyGenOpts contains options for OVIP key generation.
+type OVIPKeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *OVIPKeyGenOpts) Algorithm() string {
+	return OVIP
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *OVIPKeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type OVIPGoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *OVIPGoPublicKeyImportOpts) Algorithm() string {
+	return OVIP
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *OVIPGoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type OVIPPrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *OVIPPrivateKeyImportOpts) Algorithm() string {
+	return OVIP
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *OVIPPrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// OVIII
+// OVIIIKeyGenOpts contains options for OVIII key generation.
+type OVIIIKeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *OVIIIKeyGenOpts) Algorithm() string {
+	return OVIII
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *OVIIIKeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type OVIIIGoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *OVIIIGoPublicKeyImportOpts) Algorithm() string {
+	return OVIII
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *OVIIIGoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type OVIIIPrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *OVIIIPrivateKeyImportOpts) Algorithm() string {
+	return OVIII
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *OVIIIPrivateKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+// ---------------------------
+// OVV
+// OVVKeyGenOpts contains options for OVV key generation.
+type OVVKeyGenOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *OVVKeyGenOpts) Algorithm() string {
+	return OVV
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *OVVKeyGenOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type OVVGoPublicKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key generation algorithm identifier (to be used).
+func (opts *OVVGoPublicKeyImportOpts) Algorithm() string {
+	return OVV
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *OVVGoPublicKeyImportOpts) Ephemeral() bool {
+	return opts.Temporary
+}
+
+type OVVPrivateKeyImportOpts struct {
+	Temporary bool
+}
+
+// Algorithm returns the key importation algorithm identifier (to be used).
+func (opts *OVVPrivateKeyImportOpts) Algorithm() string {
+	return OVV
+}
+
+// Ephemeral returns true if the key to generate has to be ephemeral,
+// false otherwise.
+func (opts *OVVPrivateKeyImportOpts) Ephemeral() bool {
 	return opts.Temporary
 }

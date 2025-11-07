@@ -9,8 +9,23 @@ package sw
 import (
 	"bytes"
 	"crypto/ecdsa"
-	dilithium2 "crypto/pqc/dilithium/dilithium2"
-	dilithium5 "crypto/pqc/dilithium/dilithium5"
+	"crypto/pqc/dilithium/dilithium2"
+	"crypto/pqc/dilithium/dilithium3"
+	"crypto/pqc/dilithium/dilithium5"
+	"crypto/pqc/falcon/falcon1024"
+	"crypto/pqc/falcon/falcon1024padded"
+	"crypto/pqc/falcon/falcon512"
+	"crypto/pqc/falcon/falcon512padded"
+	"crypto/pqc/mayo/mayo2"
+	"crypto/pqc/mayo/mayo3"
+	"crypto/pqc/mayo/mayo5"
+	"crypto/pqc/ov/oviii"
+	"crypto/pqc/ov/ovip"
+	"crypto/pqc/ov/ovv"
+	"crypto/pqc/snova/snova2454"
+	"crypto/pqc/snova/snova2455"
+	"crypto/pqc/snova/snova2583"
+	"crypto/pqc/snova/snova2965"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -144,10 +159,47 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PrivateKey:
 			return &ecdsaPrivateKey{k}, nil
+		// Post quantum digital signatures
+		// Falcon
+		case *falcon512.PrivateKey:
+			return &falcon512PrivateKey{k}, nil
+		case *falcon1024.PrivateKey:
+			return &falcon1024PrivateKey{k}, nil
+		case *falcon512padded.PrivateKey:
+			return &falcon512paddedPrivateKey{k}, nil
+		case *falcon1024padded.PrivateKey:
+			return &falcon1024paddedPrivateKey{k}, nil
+		// Dilithium
 		case *dilithium2.PrivateKey:
 			return &dilithium2PrivateKey{k}, nil
+		case *dilithium3.PrivateKey:
+			return &dilithium3PrivateKey{k}, nil
 		case *dilithium5.PrivateKey:
 			return &dilithium5PrivateKey{k}, nil
+		// Mayo
+		case *mayo2.PrivateKey:
+			return &mayo2PrivateKey{k}, nil
+		case *mayo3.PrivateKey:
+			return &mayo3PrivateKey{k}, nil
+		case *mayo5.PrivateKey:
+			return &mayo5PrivateKey{k}, nil
+		// Snova
+		case *snova2454.PrivateKey:
+			return &snova2454PrivateKey{k}, nil
+		case *snova2583.PrivateKey:
+			return &snova2583PrivateKey{k}, nil
+		case *snova2455.PrivateKey:
+			return &snova2455PrivateKey{k}, nil
+		case *snova2965.PrivateKey:
+			return &snova2965PrivateKey{k}, nil
+		// Uov
+		case *ovip.PrivateKey:
+			return &ovipPrivateKey{k}, nil
+		case *oviii.PrivateKey:
+			return &oviiiPrivateKey{k}, nil
+		case *ovv.PrivateKey:
+			return &ovvPrivateKey{k}, nil
+
 		default:
 			return nil, errors.New("secret key type not recognized")
 		}
@@ -161,10 +213,46 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		switch k := key.(type) {
 		case *ecdsa.PublicKey:
 			return &ecdsaPublicKey{k}, nil
+		// Post quantum digital signatures
+		// Falcon
+		case falcon512.PublicKey:
+			return &falcon512PublicKey{k}, nil
+		case falcon1024.PublicKey:
+			return &falcon1024PublicKey{k}, nil
+		case falcon512padded.PublicKey:
+			return &falcon512paddedPublicKey{k}, nil
+		case falcon1024padded.PublicKey:
+			return &falcon1024paddedPublicKey{k}, nil
+		// Dilithium
 		case dilithium2.PublicKey:
 			return &dilithium2PublicKey{k}, nil
+		case dilithium3.PublicKey:
+			return &dilithium3PublicKey{k}, nil
 		case dilithium5.PublicKey:
 			return &dilithium5PublicKey{k}, nil
+		// Mayo
+		case mayo2.PublicKey:
+			return &mayo2PublicKey{k}, nil
+		case mayo3.PublicKey:
+			return &mayo3PublicKey{k}, nil
+		case mayo5.PublicKey:
+			return &mayo5PublicKey{k}, nil
+		// Snova
+		case snova2454.PublicKey:
+			return &snova2454PublicKey{k}, nil
+		case snova2583.PublicKey:
+			return &snova2583PublicKey{k}, nil
+		case snova2455.PublicKey:
+			return &snova2455PublicKey{k}, nil
+		case snova2965.PublicKey:
+			return &snova2965PublicKey{k}, nil
+		// Uov
+		case ovip.PublicKey:
+			return &ovipPublicKey{k}, nil
+		case oviii.PublicKey:
+			return &oviiiPublicKey{k}, nil
+		case ovv.PublicKey:
+			return &ovvPublicKey{k}, nil
 		default:
 			return nil, errors.New("public key type not recognized")
 		}
@@ -201,39 +289,314 @@ func (ks *fileBasedKeyStore) StoreKey(k bccsp.Key) (err error) {
 		if err != nil {
 			return fmt.Errorf("failed storing AES key [%s]", err)
 		}
-	case *dilithium2PrivateKey:
+	// Post quantum digital signatures
+	// Falcon
+	case *falcon512PrivateKey:
 		if kk.privKey == nil {
-			return fmt.Errorf("Failed storing empty OQS key")
+			return fmt.Errorf("Failed storing empty Falcon512 private key")
 		}
 		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
 		if err != nil {
-			return fmt.Errorf("failed storing DILITHIUM private key [%s]", err)
+			return fmt.Errorf("failed storing Falcon512 private key [%s]", err)
+		}
+
+	case *falcon512PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Falcon512 public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Falcon512 public key [%s]", err)
+		}
+
+	case *falcon1024PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Falcon1024 private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Falcon1024 private key [%s]", err)
+		}
+
+	case *falcon1024PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Falcon1024 public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Falcon1024 public key [%s]", err)
+		}
+
+	case *falcon512paddedPrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Falcon512padded private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Falcon512padded private key [%s]", err)
+		}
+
+	case *falcon512paddedPublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Falcon512padded public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Falcon512padded public key [%s]", err)
+		}
+
+	case *falcon1024paddedPrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Falcon1024padded private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Falcon1024padded private key [%s]", err)
+		}
+
+	case *falcon1024paddedPublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Falcon1024padded public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Falcon1024padded public key [%s]", err)
+		}
+
+	// Dilithium
+	case *dilithium2PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Dilithium2 private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Dilithium2 private key [%s]", err)
 		}
 
 	case *dilithium2PublicKey:
 		if kk.pubKey == nil {
-			return fmt.Errorf("Failed storing empty OQS public key")
+			return fmt.Errorf("Failed storing empty Dilithium2 public key")
 		}
 		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
 		if err != nil {
-			return fmt.Errorf("failed storing DILITHIUM public key [%s]", err)
+			return fmt.Errorf("failed storing Dilithium2 public key [%s]", err)
 		}
-	case *dilithium5PrivateKey:
+
+	case *dilithium3PrivateKey:
 		if kk.privKey == nil {
-			return fmt.Errorf("Failed storing empty OQS key")
+			return fmt.Errorf("Failed storing empty Dilithium3 private key")
 		}
 		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
 		if err != nil {
-			return fmt.Errorf("failed storing DILITHIUM private key [%s]", err)
+			return fmt.Errorf("failed storing Dilithium3 private key [%s]", err)
+		}
+
+	case *dilithium3PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Dilithium3 public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Dilithium3 public key [%s]", err)
+		}
+
+	case *dilithium5PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Dilithium5 private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Dilithium5 private key [%s]", err)
 		}
 
 	case *dilithium5PublicKey:
 		if kk.pubKey == nil {
-			return fmt.Errorf("Failed storing empty OQS public key")
+			return fmt.Errorf("Failed storing empty Dilithium5 public key")
 		}
 		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
 		if err != nil {
-			return fmt.Errorf("failed storing DILITHIUM public key [%s]", err)
+			return fmt.Errorf("failed storing Dilithium5 public key [%s]", err)
+		}
+
+	// Mayo
+	case *mayo2PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Mayo2 private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Mayo2 private key [%s]", err)
+		}
+
+	case *mayo2PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Mayo2 public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Mayo2 public key [%s]", err)
+		}
+
+	case *mayo3PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Mayo3 private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Mayo3 private key [%s]", err)
+		}
+
+	case *mayo3PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Mayo3 public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Mayo3 public key [%s]", err)
+		}
+
+	case *mayo5PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Mayo5 private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Mayo5 private key [%s]", err)
+		}
+
+	case *mayo5PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Mayo5 public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Mayo5 public key [%s]", err)
+		}
+
+	// Snova
+	case *snova2454PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Snova2454 private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Snova2454 private key [%s]", err)
+		}
+
+	case *snova2454PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Snova2454 public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Snova2454 public key [%s]", err)
+		}
+
+	case *snova2583PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Snova2583 private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Snova2583 private key [%s]", err)
+		}
+
+	case *snova2583PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Snova2583 public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Snova2583 public key [%s]", err)
+		}
+
+	case *snova2455PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Snova2455 private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Snova2455 private key [%s]", err)
+		}
+
+	case *snova2455PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Snova2455 public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Snova2455 public key [%s]", err)
+		}
+
+	case *snova2965PrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Snova2965 private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Snova2965 private key [%s]", err)
+		}
+
+	case *snova2965PublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Snova2965 public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Snova2965 public key [%s]", err)
+		}
+
+	// Uov
+	case *ovipPrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Ovip private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Ovip private key [%s]", err)
+		}
+
+	case *ovipPublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Ovip public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Ovip public key [%s]", err)
+		}
+	case *oviiiPrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Oviii private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Oviii private key [%s]", err)
+		}
+
+	case *oviiiPublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Oviii public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Oviii public key [%s]", err)
+		}
+	case *ovvPrivateKey:
+		if kk.privKey == nil {
+			return fmt.Errorf("Failed storing empty Ovv private key")
+		}
+		err = ks.storePrivateKey(hex.EncodeToString(k.SKI()), kk.privKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Ovv private key [%s]", err)
+		}
+
+	case *ovvPublicKey:
+		if kk.pubKey == nil {
+			return fmt.Errorf("Failed storing empty Ovv public key")
+		}
+		err = ks.storePublicKey(hex.EncodeToString(k.SKI()), kk.pubKey)
+		if err != nil {
+			return fmt.Errorf("failed storing Ovv public key [%s]", err)
 		}
 
 	default:
@@ -267,14 +630,48 @@ func (ks *fileBasedKeyStore) searchKeystoreForSKI(ski []byte) (k bccsp.Key, err 
 
 		switch kk := key.(type) {
 		case *ecdsa.PrivateKey:
-			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside ecdsa in cases and the SKI is")
 			k = &ecdsaPrivateKey{kk}
+		// Post quantum digital signatures
+		// Falcon
+		case *falcon512.PrivateKey:
+			k = &falcon512PrivateKey{kk}
+		case *falcon1024.PrivateKey:
+			k = &falcon1024PrivateKey{kk}
+		case *falcon512padded.PrivateKey:
+			k = &falcon512paddedPrivateKey{kk}
+		case *falcon1024padded.PrivateKey:
+			k = &falcon1024paddedPrivateKey{kk}
+		// Dilithium
 		case *dilithium2.PrivateKey:
-			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside dilihtium5 in cases and the SKI is")
 			k = &dilithium2PrivateKey{kk}
+		case *dilithium3.PrivateKey:
+			k = &dilithium3PrivateKey{kk}
 		case *dilithium5.PrivateKey:
-			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside dilihtium5 in cases and the SKI is")
 			k = &dilithium5PrivateKey{kk}
+		// Mayo
+		case *mayo2.PrivateKey:
+			k = &mayo2PrivateKey{kk}
+		case *mayo3.PrivateKey:
+			k = &mayo3PrivateKey{kk}
+		case *mayo5.PrivateKey:
+			k = &mayo5PrivateKey{kk}
+		// Snova
+		case *snova2454.PrivateKey:
+			k = &snova2454PrivateKey{kk}
+		case *snova2583.PrivateKey:
+			k = &snova2583PrivateKey{kk}
+		case *snova2455.PrivateKey:
+			k = &snova2455PrivateKey{kk}
+		case *snova2965.PrivateKey:
+			k = &snova2965PrivateKey{kk}
+		// Uov
+		case *ovip.PrivateKey:
+			k = &ovipPrivateKey{kk}
+		case *oviii.PrivateKey:
+			k = &oviiiPrivateKey{kk}
+		case *ovv.PrivateKey:
+			k = &ovvPrivateKey{kk}
+
 		default:
 			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside default in cases and the SKI is")
 			continue

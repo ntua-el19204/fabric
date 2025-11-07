@@ -1,43 +1,75 @@
-# Use your Docker Hub image instead of local base image
-FROM georgekyr/golang-pqcrypto:latest as golang
+#
+# Copyright contributors to the Hyperledger Fabric project
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+#
+# 	  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
-# Force Go to use local installation, not download toolchains
-ENV GOTOOLCHAIN=local
-ENV GOROOT=/usr/local/go
-ENV GOPATH=/go
-ENV PATH=/usr/local/go/bin:$PATH
-ENV LD_LIBRARY_PATH=/usr/local/lib
-ENV PKG_CONFIG_PATH=/liboqs-go/.config
+# ---------------------------------------
+#
+# ---------------------------------------
+ARG GO_VER
+ARG UBUNTU_VER
 
+FROM ubuntu:${UBUNTU_VER} as base
+RUN apt-get -y update && \
+    apt-get install -y \
+        tzdata \
+        libssl-dev \
+        python3-pytest \
+        python3-pytest-xdist \
+        zip \
+        libxslt1-dev \
+        doxygen \
+        graphviz \
+        python3-yaml \
+        valgrind
+# set up nsswitch.conf for Go's "netgo" implementation
+# - https://github.com/golang/go/blob/go1.9.1/src/net/conf.go#L194-L275
+# - docker run --rm debian:stretch grep '^hosts:' /etc/nsswitch.conf
+RUN echo 'hosts: files dns' > /etc/nsswitch.conf
+
+# ---------------------------------------
+#
+# ---------------------------------------
+FROM georgekyr/golang-pqcrypto:1.0 as golang
 ADD . $GOPATH/src/github.com/hyperledger/fabric
 WORKDIR $GOPATH/src/github.com/hyperledger/fabric
 
-# Verify Go is using your crypto package
-RUN go env GOROOT
-RUN ls -la /usr/local/go/src/crypto/pqc/dilithium/dilithium5/
-RUN go list crypto/pqc/dilithium/dilithium5
 
+# ---------------------------------------
+#
+# ---------------------------------------
+FROM golang as orderer
 ARG GO_TAGS
-ARG FABRIC_VER
-RUN make orderer GO_TAGS=${GO_TAGS} FABRIC_VER=${FABRIC_VER}
-
-FROM ubuntu:24.04
-
-ARG FABRIC_VER
-RUN echo 'hosts: files dns' > /etc/nsswitch.conf
-
-ENV FABRIC_CFG_PATH /etc/hyperledger/fabric
-ENV FABRIC_VER ${FABRIC_VER}
 ENV LD_LIBRARY_PATH /usr/local/lib
+RUN make orderer GO_TAGS=${GO_TAGS}
 
-COPY --from=golang /usr/local/lib /usr/local/lib
-COPY --from=golang /usr/local/go/src/crypto /usr/local/go/src/crypto
-COPY --from=golang /go/src/github.com/hyperledger/fabric/build/bin/orderer /usr/local/bin
-COPY --from=golang /go/src/github.com/hyperledger/fabric/sampleconfig/msp ${FABRIC_CFG_PATH}/msp
-COPY --from=golang /go/src/github.com/hyperledger/fabric/sampleconfig/orderer.yaml ${FABRIC_CFG_PATH}
-COPY --from=golang /go/src/github.com/hyperledger/fabric/sampleconfig/configtx.yaml ${FABRIC_CFG_PATH}
+FROM base
+ENV FABRIC_CFG_PATH /etc/hyperledger/fabric
 
 VOLUME /etc/hyperledger/fabric
 VOLUME /var/hyperledger
+
+ENV LD_LIBRARY_PATH /usr/local/lib
+
+COPY --from=orderer /usr/local/lib                                                          /usr/local/lib
+COPY --from=orderer /usr/local/go/src/crypto /usr/local/go/src/crypto
+COPY --from=orderer /go/src/github.com/hyperledger/fabric/build/bin/orderer                 /usr/local/bin
+COPY --from=orderer /go/src/github.com/hyperledger/fabric/sampleconfig/msp                  ${FABRIC_CFG_PATH}/msp
+COPY --from=orderer /go/src/github.com/hyperledger/fabric/sampleconfig/orderer.yaml         ${FABRIC_CFG_PATH}
+COPY --from=orderer /go/src/github.com/hyperledger/fabric/sampleconfig/configtx.yaml        ${FABRIC_CFG_PATH}
+
 EXPOSE 7050
-CMD ["orderer", "start"]
+CMD ["orderer"]

@@ -8,15 +8,30 @@ package ca
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/elliptic"
+	"crypto/ed25519"
 	"crypto/pqc/dilithium/dilithium2"
+	"crypto/pqc/dilithium/dilithium3"
 	"crypto/pqc/dilithium/dilithium5"
+	"crypto/pqc/falcon/falcon1024"
+	"crypto/pqc/falcon/falcon1024padded"
+	"crypto/pqc/falcon/falcon512"
+	"crypto/pqc/falcon/falcon512padded"
+	"crypto/pqc/mayo/mayo2"
+	"crypto/pqc/mayo/mayo3"
+	"crypto/pqc/mayo/mayo5"
+	"crypto/pqc/ov/oviii"
+	"crypto/pqc/ov/ovip"
+	"crypto/pqc/ov/ovv"
+	"crypto/pqc/snova/snova2454"
+	"crypto/pqc/snova/snova2455"
+	"crypto/pqc/snova/snova2583"
+	"crypto/pqc/snova/snova2965"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"io/ioutil"
+	"fmt"
 	"math/big"
 	"net"
 	"os"
@@ -40,7 +55,7 @@ type CA struct {
 	SignCert           *x509.Certificate
 }
 
-// NewCA creates an instance of CA using ECDSA signature and saves the signing key pair in
+// NewCA creates an instance of CA and saves the signing key pair in
 // baseDir/name
 func NewCA(
 	baseDir,
@@ -52,7 +67,10 @@ func NewCA(
 	orgUnit,
 	streetAddress,
 	postalCode string,
+	keyAlg string,
 ) (*CA, error) {
+	//fmt.Println("Inside NewCa")
+	//fmt.Println("The key alg is ", keyAlg)
 	var ca *CA
 
 	err := os.MkdirAll(baseDir, 0o755)
@@ -60,10 +78,14 @@ func NewCA(
 		return nil, err
 	}
 
-	priv, err := csp.GeneratePrivateKey(baseDir)
+	priv, err := csp.GeneratePrivateKey(baseDir, keyAlg)
 	if err != nil {
 		return nil, err
 	}
+
+	//fmt.Println("The private key is ", priv)
+	//fmt.Println()
+	//fmt.Println("The public key is ", getPublicKey(priv))
 
 	template := x509Template()
 	// this is a CA
@@ -82,168 +104,25 @@ func NewCA(
 	subject.CommonName = name
 
 	template.Subject = subject
-	template.SubjectKeyId = computeSKI(priv)
+	template.SubjectKeyId, err = computeSKI(priv)
+	if err != nil {
+		return nil, err
+	}
 
-	x509Cert, err := genCertificateECDSA(
+	x509Cert, err := genCertificate(
 		baseDir,
 		name,
 		&template,
 		&template,
-		&priv.PublicKey,
+		getPublicKey(priv),
 		priv,
 	)
 	if err != nil {
 		return nil, err
 	}
 	ca = &CA{
-		Name: name,
-		Signer: &csp.ECDSASigner{
-			PrivateKey: priv,
-		},
-		SignCert:           x509Cert,
-		Country:            country,
-		Province:           province,
-		Locality:           locality,
-		OrganizationalUnit: orgUnit,
-		StreetAddress:      streetAddress,
-		PostalCode:         postalCode,
-	}
-
-	return ca, err
-}
-
-// NewCA creates an instance of CA using ECDSA signature and saves the signing key pair in
-// baseDir/name
-func NewDilithium2CA(
-	baseDir,
-	org,
-	name,
-	country,
-	province,
-	locality,
-	orgUnit,
-	streetAddress,
-	postalCode string,
-) (*CA, error) {
-	var ca *CA
-
-	err := os.MkdirAll(baseDir, 0o755)
-	if err != nil {
-		return nil, err
-	}
-
-	priv, err := csp.GenerateDilithium2PrivateKey(baseDir)
-	if err != nil {
-		return nil, err
-	}
-
-	template := x509Template()
-	// this is a CA
-	template.IsCA = true
-	template.KeyUsage |= x509.KeyUsageDigitalSignature |
-		x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign |
-		x509.KeyUsageCRLSign
-	template.ExtKeyUsage = []x509.ExtKeyUsage{
-		x509.ExtKeyUsageClientAuth,
-		x509.ExtKeyUsageServerAuth,
-	}
-
-	// set the organization for the subject
-	subject := subjectTemplateAdditional(country, province, locality, orgUnit, streetAddress, postalCode)
-	subject.Organization = []string{org}
-	subject.CommonName = name
-
-	template.Subject = subject
-	template.SubjectKeyId = computeDilithium2SKI(priv)
-
-	x509Cert, err := genCertificateDILITHIUM2(
-		baseDir,
-		name,
-		&template,
-		&template,
-		priv.PublicKey,
-		priv,
-	)
-	if err != nil {
-		return nil, err
-	}
-	ca = &CA{
-		Name: name,
-		Signer: &csp.DILITHIUM2Signer{
-			PrivateKey: priv,
-		},
-		SignCert:           x509Cert,
-		Country:            country,
-		Province:           province,
-		Locality:           locality,
-		OrganizationalUnit: orgUnit,
-		StreetAddress:      streetAddress,
-		PostalCode:         postalCode,
-	}
-
-	return ca, err
-}
-
-// NewCA creates an instance of CA using ECDSA signature and saves the signing key pair in
-// baseDir/name
-func NewDilithium5CA(
-	baseDir,
-	org,
-	name,
-	country,
-	province,
-	locality,
-	orgUnit,
-	streetAddress,
-	postalCode string,
-) (*CA, error) {
-	var ca *CA
-
-	err := os.MkdirAll(baseDir, 0o755)
-	if err != nil {
-		return nil, err
-	}
-
-	priv, err := csp.GenerateDilithium5PrivateKey(baseDir)
-	if err != nil {
-		return nil, err
-	}
-
-	template := x509Template()
-	// this is a CA
-	template.IsCA = true
-	template.KeyUsage |= x509.KeyUsageDigitalSignature |
-		x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign |
-		x509.KeyUsageCRLSign
-	template.ExtKeyUsage = []x509.ExtKeyUsage{
-		x509.ExtKeyUsageClientAuth,
-		x509.ExtKeyUsageServerAuth,
-	}
-
-	// set the organization for the subject
-	subject := subjectTemplateAdditional(country, province, locality, orgUnit, streetAddress, postalCode)
-	subject.Organization = []string{org}
-	subject.CommonName = name
-
-	template.Subject = subject
-	template.SubjectKeyId = computeDilithium5SKI(priv)
-
-	x509Cert, err := genCertificateDILITHIUM5(
-		baseDir,
-		name,
-		&template,
-		&template,
-		priv.PublicKey,
-		priv,
-	)
-	if err != nil {
-		return nil, err
-	}
-	ca = &CA{
-		Name: name,
-		Signer: &csp.DILITHIUM5Signer{
-			PrivateKey: priv,
-		},
+		Name:               name,
+		Signer:             GetSignerFromPrivateKey(priv),
 		SignCert:           x509Cert,
 		Country:            country,
 		Province:           province,
@@ -263,7 +142,7 @@ func (ca *CA) SignCertificate(
 	name string,
 	orgUnits,
 	alternateNames []string,
-	pub *ecdsa.PublicKey,
+	pub crypto.PublicKey,
 	ku x509.KeyUsage,
 	eku []x509.ExtKeyUsage,
 ) (*x509.Certificate, error) {
@@ -295,115 +174,7 @@ func (ca *CA) SignCertificate(
 		}
 	}
 
-	cert, err := genCertificateECDSA(
-		baseDir,
-		name,
-		&template,
-		ca.SignCert,
-		pub,
-		ca.Signer,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return cert, nil
-}
-
-// SignDilithium5Certificate creates a dilithium2 signed certificate based on a built-in template
-// and saves it in baseDir/name
-func (ca *CA) SignDilithium2Certificate(
-	baseDir,
-	name string,
-	orgUnits,
-	alternateNames []string,
-	pub dilithium2.PublicKey,
-	ku x509.KeyUsage,
-	eku []x509.ExtKeyUsage,
-) (*x509.Certificate, error) {
-	template := x509Template()
-	template.KeyUsage = ku
-	template.ExtKeyUsage = eku
-
-	// set the organization for the subject
-	subject := subjectTemplateAdditional(
-		ca.Country,
-		ca.Province,
-		ca.Locality,
-		ca.OrganizationalUnit,
-		ca.StreetAddress,
-		ca.PostalCode,
-	)
-	subject.CommonName = name
-
-	subject.OrganizationalUnit = append(subject.OrganizationalUnit, orgUnits...)
-
-	template.Subject = subject
-	for _, san := range alternateNames {
-		// try to parse as an IP address first
-		ip := net.ParseIP(san)
-		if ip != nil {
-			template.IPAddresses = append(template.IPAddresses, ip)
-		} else {
-			template.DNSNames = append(template.DNSNames, san)
-		}
-	}
-
-	cert, err := genCertificateDILITHIUM2(
-		baseDir,
-		name,
-		&template,
-		ca.SignCert,
-		pub,
-		ca.Signer,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return cert, nil
-}
-
-// SignDilithium5Certificate creates a dilithium5 signed certificate based on a built-in template
-// and saves it in baseDir/name
-func (ca *CA) SignDilithium5Certificate(
-	baseDir,
-	name string,
-	orgUnits,
-	alternateNames []string,
-	pub dilithium5.PublicKey,
-	ku x509.KeyUsage,
-	eku []x509.ExtKeyUsage,
-) (*x509.Certificate, error) {
-	template := x509Template()
-	template.KeyUsage = ku
-	template.ExtKeyUsage = eku
-
-	// set the organization for the subject
-	subject := subjectTemplateAdditional(
-		ca.Country,
-		ca.Province,
-		ca.Locality,
-		ca.OrganizationalUnit,
-		ca.StreetAddress,
-		ca.PostalCode,
-	)
-	subject.CommonName = name
-
-	subject.OrganizationalUnit = append(subject.OrganizationalUnit, orgUnits...)
-
-	template.Subject = subject
-	for _, san := range alternateNames {
-		// try to parse as an IP address first
-		ip := net.ParseIP(san)
-		if ip != nil {
-			template.IPAddresses = append(template.IPAddresses, ip)
-		} else {
-			template.DNSNames = append(template.DNSNames, san)
-		}
-	}
-
-	cert, err := genCertificateDILITHIUM5(
+	cert, err := genCertificate(
 		baseDir,
 		name,
 		&template,
@@ -419,27 +190,62 @@ func (ca *CA) SignDilithium5Certificate(
 }
 
 // compute Subject Key Identifier using RFC 7093, Section 2, Method 4
-func computeSKI(privKey *ecdsa.PrivateKey) []byte {
+func computeSKI(privKey crypto.PrivateKey) ([]byte, error) {
+	var raw []byte
+
 	// Marshall the public key
-	raw := elliptic.Marshal(privKey.Curve, privKey.PublicKey.X, privKey.PublicKey.Y)
+	switch kk := privKey.(type) {
+	case *ecdsa.PrivateKey:
+		ecdhKey, err := kk.ECDH()
+		if err != nil {
+			return nil, fmt.Errorf("private key transition failed: %w", err)
+		}
+		raw = ecdhKey.Bytes()
+	case ed25519.PrivateKey:
+		raw = kk.Public().(ed25519.PublicKey)
+	// Post quantum digital signatures
+	case *falcon512.PrivateKey:
+		raw = kk.Public().(falcon512.PublicKey)
+	case *falcon1024.PrivateKey:
+		raw = kk.Public().(falcon1024.PublicKey)
+	case *falcon512padded.PrivateKey:
+		raw = kk.Public().(falcon512padded.PublicKey)
+	case *falcon1024padded.PrivateKey:
+		raw = kk.Public().(falcon1024padded.PublicKey)
+	// Dilithium
+	case *dilithium2.PrivateKey:
+		raw = kk.Public().(dilithium2.PublicKey)
+	case *dilithium3.PrivateKey:
+		raw = kk.Public().(dilithium3.PublicKey)
+	case *dilithium5.PrivateKey:
+		raw = kk.Public().(dilithium5.PublicKey)
+	// Mayo
+	case *mayo2.PrivateKey:
+		raw = kk.Public().(mayo2.PublicKey)
+	case *mayo5.PrivateKey:
+		raw = kk.Public().(mayo5.PublicKey)
+	// Snova
+	case *snova2454.PrivateKey:
+		raw = kk.Public().(snova2454.PublicKey)
+	case *snova2583.PrivateKey:
+		raw = kk.Public().(snova2583.PublicKey)
+	case *snova2455.PrivateKey:
+		raw = kk.Public().(snova2455.PublicKey)
+	case *snova2965.PrivateKey:
+		raw = kk.Public().(snova2965.PublicKey)
+	// UOV
+	case *ovip.PrivateKey:
+		raw = kk.Public().(ovip.PublicKey)
+	case *oviii.PrivateKey:
+		raw = kk.Public().(oviii.PublicKey)
+	case *ovv.PrivateKey:
+		raw = kk.Public().(ovv.PublicKey)
+	default:
+	}
 
 	// Hash it
 	hash := sha256.Sum256(raw)
-	return hash[:]
-}
-
-func computeDilithium2SKI(privKey *dilithium2.PrivateKey) []byte {
-	// Marshall the public key
-	hash := sha256.New()
-	hash.Write(privKey.PublicKey)
-	return hash.Sum(nil)
-}
-
-func computeDilithium5SKI(privKey *dilithium5.PrivateKey) []byte {
-	// Marshall the public key
-	hash := sha256.New()
-	hash.Write(privKey.PublicKey)
-	return hash.Sum(nil)
+	return hash[:], nil
 }
 
 // default template for X509 subject
@@ -505,17 +311,30 @@ func x509Template() x509.Certificate {
 }
 
 // generate a signed X509 certificate using ECDSA
-func genCertificateECDSA(
+func genCertificate(
 	baseDir,
 	name string,
 	template,
 	parent *x509.Certificate,
-	pub *ecdsa.PublicKey,
+	pub crypto.PublicKey,
 	priv interface{},
 ) (*x509.Certificate, error) {
+	//fmt.Println("Inside genCertificate")
+	//fmt.Println("The public key is ", pub)
+	//fmt.Println("\nThe private key is ", priv)
+
+	//key, ok := priv.(crypto.Signer)
+	//if !ok {
+	//	fmt.Println("x509: certificate private key does not implement crypto.Signer")
+	//}
+
+	//fmt.Printf("\nAbout to CreateCertificate with pub %T and priv %T and the other %T\n", pub, priv, key.Public())
+
 	// create the x509 public cert
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
 	if err != nil {
+		//fmt.Println("\nError in CreateCertificate with error")
+		//fmt.Println(err)
 		return nil, err
 	}
 
@@ -539,148 +358,154 @@ func genCertificateECDSA(
 	return x509Cert, nil
 }
 
-// LoadCertificateECDSA load a ecdsa cert from a file in cert path
-func LoadCertificateECDSA(certPath string) (*x509.Certificate, error) {
-	var cert *x509.Certificate
-	var err error
+func getPublicKey(priv crypto.PrivateKey) crypto.PublicKey {
+	switch kk := priv.(type) {
+	case *ecdsa.PrivateKey:
+		return &(kk.PublicKey)
+	case ed25519.PrivateKey:
+		return kk.Public()
+	// Post quantum digital signatures
+	// Falcon
+	case *falcon512.PrivateKey:
+		return (kk.PublicKey)
+	case *falcon1024.PrivateKey:
+		return (kk.PublicKey)
+	case *falcon512padded.PrivateKey:
+		return (kk.PublicKey)
+	case *falcon1024padded.PrivateKey:
+		return (kk.PublicKey)
+	// Dilithium
+	case *dilithium2.PrivateKey:
+		return (kk.PublicKey)
+	case *dilithium3.PrivateKey:
+		return (kk.PublicKey)
+	case *dilithium5.PrivateKey:
+		return (kk.PublicKey)
+	// Mayo
+	case *mayo2.PrivateKey:
+		return (kk.PublicKey)
+	case *mayo3.PrivateKey:
+		return (kk.PublicKey)
+	case *mayo5.PrivateKey:
+		return (kk.PublicKey)
+	// Snova
+	case *snova2454.PrivateKey:
+		return (kk.PublicKey)
+	case *snova2583.PrivateKey:
+		return (kk.PublicKey)
+	case *snova2455.PrivateKey:
+		return (kk.PublicKey)
+	case *snova2965.PrivateKey:
+		return (kk.PublicKey)
+	// UOV
+	case *ovip.PrivateKey:
+		return (kk.PublicKey)
+	case *oviii.PrivateKey:
+		return (kk.PublicKey)
+	case *ovv.PrivateKey:
+		return (kk.PublicKey)
+	default:
+		panic("unsupported key algorithm")
+	}
+}
 
-	walkFunc := func(path string, info os.FileInfo, err error) error {
-		if strings.HasSuffix(path, ".pem") {
-			rawCert, err := ioutil.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			block, _ := pem.Decode(rawCert)
-			if block == nil || block.Type != "CERTIFICATE" {
-				return errors.Errorf("%s: wrong PEM encoding", path)
-			}
-			cert, err = x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				return errors.Errorf("%s: wrong DER encoding", path)
-			}
+func GetSignerFromPrivateKey(priv crypto.PrivateKey) crypto.Signer {
+	switch kk := priv.(type) {
+	case *ecdsa.PrivateKey:
+		return &csp.ECDSASigner{
+			PrivateKey: kk,
 		}
-		return nil
-	}
-
-	err = filepath.Walk(certPath, walkFunc)
-	if err != nil {
-		return nil, err
-	}
-
-	return cert, err
-}
-
-// generate a signed X509 certificate using DILITHIUM5
-func genCertificateDILITHIUM2(
-	baseDir,
-	name string,
-	template,
-	parent *x509.Certificate,
-	pub dilithium2.PublicKey,
-	priv interface{},
-) (*x509.Certificate, error) {
-	// create the x509 public cert
-	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
-	//fmt.Println(err)
-	if err != nil {
-		return nil, err
-	}
-	// write cert out to file
-	fileName := filepath.Join(baseDir, name+"-cert.pem")
-	certFile, err := os.Create(fileName)
-	if err != nil {
-		return nil, err
-	}
-	// pem encode the cert
-	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
-	certFile.Close()
-	if err != nil {
-		return nil, err
-	}
-	x509Cert, err := x509.ParseCertificate(certBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	//fmt.Println(x509Cert)
-	return x509Cert, nil
-}
-
-// LoadCertificateDILITHIUM5 load a ecdsa cert from a file in cert path
-func LoadCertificateDILITHIUM2(certPath string) (*x509.Certificate, error) {
-	var cert *x509.Certificate
-	var err error
-
-	walkFunc := func(path string, info os.FileInfo, err error) error {
-		if strings.HasSuffix(path, ".pem") {
-			rawCert, err := ioutil.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			block, _ := pem.Decode(rawCert)
-			if block == nil || block.Type != "CERTIFICATE" {
-				return errors.Errorf("%s: wrong PEM encoding", path)
-			}
-			cert, err = x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				return errors.Errorf("%s: wrong DER encoding", path)
-			}
+	case ed25519.PrivateKey:
+		return &csp.ED25519Signer{
+			PrivateKey: kk,
 		}
-		return nil
+	// Post quantum digital signatures
+	// Falcon
+	case *falcon512.PrivateKey:
+		return &csp.FALCON512Signer{
+			PrivateKey: kk,
+		}
+	case *falcon1024.PrivateKey:
+		return &csp.FALCON1024Signer{
+			PrivateKey: kk,
+		}
+	case *falcon512padded.PrivateKey:
+		return &csp.FALCON512PADDEDSigner{
+			PrivateKey: kk,
+		}
+	case *falcon1024padded.PrivateKey:
+		return &csp.FALCON1024PADDEDSigner{
+			PrivateKey: kk,
+		}
+	// Dilithium
+	case *dilithium2.PrivateKey:
+		return &csp.DILITHIUM2Signer{
+			PrivateKey: kk,
+		}
+	case *dilithium3.PrivateKey:
+		return &csp.DILITHIUM3Signer{
+			PrivateKey: kk,
+		}
+	case *dilithium5.PrivateKey:
+		return &csp.DILITHIUM5Signer{
+			PrivateKey: kk,
+		}
+	// Mayo
+	case *mayo2.PrivateKey:
+		return &csp.MAYO2Signer{
+			PrivateKey: kk,
+		}
+	case *mayo3.PrivateKey:
+		return &csp.MAYO3Signer{
+			PrivateKey: kk,
+		}
+	case *mayo5.PrivateKey:
+		return &csp.MAYO5Signer{
+			PrivateKey: kk,
+		}
+	// Snova
+	case *snova2454.PrivateKey:
+		return &csp.SNOVA2454Signer{
+			PrivateKey: kk,
+		}
+	case *snova2583.PrivateKey:
+		return &csp.SNOVA2583Signer{
+			PrivateKey: kk,
+		}
+	case *snova2455.PrivateKey:
+		return &csp.SNOVA2455Signer{
+			PrivateKey: kk,
+		}
+	case *snova2965.PrivateKey:
+		return &csp.SNOVA2965Signer{
+			PrivateKey: kk,
+		}
+	// UOV
+	case *ovip.PrivateKey:
+		return &csp.OVIPSigner{
+			PrivateKey: kk,
+		}
+	case *oviii.PrivateKey:
+		return &csp.OVIIISigner{
+			PrivateKey: kk,
+		}
+	case *ovv.PrivateKey:
+		return &csp.OVVSigner{
+			PrivateKey: kk,
+		}
+	default:
+		panic("unsupported key algorithm")
 	}
-
-	err = filepath.Walk(certPath, walkFunc)
-	if err != nil {
-		return nil, err
-	}
-
-	return cert, err
 }
 
-// generate a signed X509 certificate using DILITHIUM5
-func genCertificateDILITHIUM5(
-	baseDir,
-	name string,
-	template,
-	parent *x509.Certificate,
-	pub dilithium5.PublicKey,
-	priv interface{},
-) (*x509.Certificate, error) {
-	// create the x509 public cert
-	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
-	//fmt.Println(err)
-	if err != nil {
-		return nil, err
-	}
-	// write cert out to file
-	fileName := filepath.Join(baseDir, name+"-cert.pem")
-	certFile, err := os.Create(fileName)
-	if err != nil {
-		return nil, err
-	}
-	// pem encode the cert
-	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
-	certFile.Close()
-	if err != nil {
-		return nil, err
-	}
-	x509Cert, err := x509.ParseCertificate(certBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	//fmt.Println(x509Cert)
-	return x509Cert, nil
-}
-
-// LoadCertificateDILITHIUM5 load a ecdsa cert from a file in cert path
-func LoadCertificateDILITHIUM5(certPath string) (*x509.Certificate, error) {
+// LoadCertificate loads a cert from a file in cert path
+func LoadCertificate(certPath string) (*x509.Certificate, error) {
 	var cert *x509.Certificate
 	var err error
 
 	walkFunc := func(path string, info os.FileInfo, err error) error {
 		if strings.HasSuffix(path, ".pem") {
-			rawCert, err := ioutil.ReadFile(path)
+			rawCert, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
