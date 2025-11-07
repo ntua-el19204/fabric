@@ -1,0 +1,24 @@
+test:
+  name: create-asset-100
+  description: >-
+    This is a duration-based benchmark targeting a Hyperledger Fabric network
+    using the `fixed-asset` chaincode invoking the createAsset method which is
+    a blind write.
+  workers:
+    number: 6
+  rounds:
+    - label: create-asset-100
+      description: >-
+        Replay recorded transaction timings from previous benchmark using the
+        `fixed-asset` chaincode method `createAsset`.
+      chaincodeID: fixed-asset
+      txNumber: 10000
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 175
+      workload:
+        module: benchmarks/api/fabric/workloads/create-asset.js
+        arguments:
+          chaincodeID: fixed-asset
+          byteSize: 100
