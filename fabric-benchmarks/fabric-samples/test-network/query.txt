@@ -7,7 +7,7 @@ export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/org1.examp
 export CORE_PEER_ADDRESS=localhost:7051
 export ORDERER_CA=${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
 
-BLOCK_NO=5
+BLOCK_NO=10
 
 # Fetch it from the orderer (writes mychannel_5.block)
 peer channel fetch ${BLOCK_NO} ./mychannel_${BLOCK_NO}.block \

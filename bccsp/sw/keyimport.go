@@ -222,9 +222,9 @@ func (ki *x509PublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bc
 			pk,
 			&bccsp.OVIPGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
 	case oviii.PublicKey:
-		return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.OVIPGoPublicKeyImportOpts{})].KeyImport(
+		return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.OVIIIGoPublicKeyImportOpts{})].KeyImport(
 			pk,
-			&bccsp.OVIPGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
+			&bccsp.OVIIIGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
 	case ovv.PublicKey:
 		return ki.bccsp.KeyImporters[reflect.TypeOf(&bccsp.OVVGoPublicKeyImportOpts{})].KeyImport(
 			pk,

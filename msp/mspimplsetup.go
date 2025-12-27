@@ -396,6 +396,7 @@ func (msp *bccspmsp) setupNodeOUsV142(config *m.FabricMSPConfig) error {
 }
 
 func (msp *bccspmsp) setupSigningIdentity(conf *m.FabricMSPConfig) error {
+	//fmt.Println("Inside setupSigningIdentity")
 	if conf.SigningIdentity != nil {
 		sid, err := msp.getSigningIdentityFromConf(conf.SigningIdentity)
 		if err != nil {

@@ -226,7 +226,7 @@ func derToPrivateKey(der []byte) (key interface{}, err error) {
 			return nil, errors.New("found unknown private key type in PKCS#8 wrapping")
 		}
 	}
-
+	//fmt.Println("The Parse function did not work")
 	if key, err = x509.ParseECPrivateKey(der); err == nil {
 		return
 	}
@@ -235,6 +235,7 @@ func derToPrivateKey(der []byte) (key interface{}, err error) {
 }
 
 func pemToPrivateKey(raw []byte, pwd []byte) (interface{}, error) {
+	//fmt.Println("Inside pem to private key")
 	block, _ := pem.Decode(raw)
 	if block == nil {
 		return nil, fmt.Errorf("failed decoding PEM. Block must be different from nil [% x]", raw)

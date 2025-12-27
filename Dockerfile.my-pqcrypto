@@ -63,10 +63,10 @@ RUN rm -f /tmp/cache-buster && rm -rf /tmp/liboqs /tmp/liboqs-go
 
 
 # Build the image with your latest crypto changes
-# docker build -f Dockerfile.my-pqcrypto -t georgekyr/golang-pqcrypto:latest .
+# docker build -f Dockerfile.my-pqcrypto -t georgekyr/golang-pqcrypto:1.0 .
 
 # Login to Docker Hub (if not already logged in)
 # docker login
 
 # Push the updated base image
-# docker push georgekyr/golang-pqcrypto:latest
+# docker push georgekyr/golang-pqcrypto:1.0

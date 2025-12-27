@@ -1,6 +1,6 @@
 test:
   workers:
-    number: 5
+    number: 2
   rounds:
     - label: Create a car.
       # 5000 transactions should create around 1000 cars per worker but not guaranteed

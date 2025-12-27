@@ -98,6 +98,101 @@ func GenerateLocalMSP(
 		return err
 	}
 
+	// Writing the private key in raw bytes
+	switch k := priv.(type) {
+	// Falcon
+	case *falcon512.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Falcon512 raw key: %v", err)
+		}
+	case *falcon512padded.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Falcon512Padded raw key: %v", err)
+		}
+	case *falcon1024.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Falcon1024 raw key: %v", err)
+		}
+	case *falcon1024padded.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Falcon1024Padded raw key: %v", err)
+		}
+	// Dilithium
+	case *dilithium2.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Dilithium2 raw key: %v", err)
+		}
+	case *dilithium3.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Dilithium3 raw key: %v", err)
+		}
+	case *dilithium5.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Dilithium5 raw key: %v", err)
+		}
+	// Mayo
+	case *mayo2.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Mayo2 raw key: %v", err)
+		}
+	case *mayo3.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Mayo3 raw key: %v", err)
+		}
+	case *mayo5.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Mayo5 raw key: %v", err)
+		}
+	// snova
+	case *snova2454.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Snova2454 raw key: %v", err)
+		}
+	case *snova2583.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Snova2583 raw key: %v", err)
+		}
+	case *snova2455.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Snova2455 raw key: %v", err)
+		}
+	case *snova2965.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Snova2965 raw key: %v", err)
+		}
+	// Uov
+	case *ovip.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Uovip raw key: %v", err)
+		}
+	case *oviii.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Uoviii raw key: %v", err)
+		}
+	case *ovv.PrivateKey:
+		err := os.WriteFile(filepath.Join(keystore, "priv_sk.raw"), k.Sk, 0600)
+		if err != nil {
+			return fmt.Errorf("failed to write Uovv raw key: %v", err)
+		}
+
+	}
+
 	//fmt.Println("Private Key is ", priv)
 	//fmt.Println()
 	//fmt.Println("Public Key is ", getPublicKey(priv))
@@ -118,7 +213,7 @@ func GenerateLocalMSP(
 		[]x509.ExtKeyUsage{},
 	)
 	if err != nil {
-		fmt.Println("Error in Sign Certificate")
+		//fmt.Println("Error in Sign Certificate")
 		return err
 	}
 
@@ -130,7 +225,7 @@ func GenerateLocalMSP(
 		signCA.SignCert,
 	)
 	if err != nil {
-		fmt.Println("Error in x509 export")
+		//fmt.Println("Error in x509 export")
 		return err
 	}
 	// the TLS CA certificate goes into tlscacerts
@@ -139,7 +234,7 @@ func GenerateLocalMSP(
 		tlsCA.SignCert,
 	)
 	if err != nil {
-		fmt.Println("Error in x509 export")
+		//fmt.Println("Error in x509 export")
 		return err
 	}
 

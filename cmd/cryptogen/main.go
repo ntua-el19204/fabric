@@ -221,7 +221,11 @@ var (
 	showtemplate  = app.Command("showtemplate", "Show the default configuration template")
 
 	// Pq algorithm using flag
-	genPqAlg = gen.Flag("pqalg", "The post-quantum algorithm to use. MUST match exactly a liboqs algorithm name").String()
+	//genPqAlg      = gen.Flag("pqalg", "The post-quantum algorithm to use. MUST match exactly a liboqs algorithm name").String()
+	genCaAlg      = gen.Flag("caAlg", "The signature algorithm the Certificate Authority will use that can be either classical or post quantum").Default("ecdsa").String()
+	genPeerAlg    = gen.Flag("peerAlg", "The signature algorithm the peers will use that can be either classical or post quantum").Default("ecdsa").String()
+	genOrdererAlg = gen.Flag("ordererAlg", "The signature algorithm the orderers will use that can be either classical or post quantum").Default("ecdsa").String()
+	genClientAlg  = gen.Flag("clientAlg", "The signature algorithm the clients will use that can be either classical or post quantum").Default("ecdsa").String()
 
 	version       = app.Command("version", "Show version information")
 	ext           = app.Command("extend", "Extend existing network")
@@ -545,7 +549,7 @@ func generatePeerOrg(baseDir string, orgSpec OrgSpec) {
 	usersDir := filepath.Join(orgDir, "users")
 	adminCertsDir := filepath.Join(mspDir, "admincerts")
 	// generate signing CA
-	signCA, err := ca.NewCA(caDir, orgName, orgSpec.CA.CommonName, orgSpec.CA.Country, orgSpec.CA.Province, orgSpec.CA.Locality, orgSpec.CA.OrganizationalUnit, orgSpec.CA.StreetAddress, orgSpec.CA.PostalCode, *genPqAlg)
+	signCA, err := ca.NewCA(caDir, orgName, orgSpec.CA.CommonName, orgSpec.CA.Country, orgSpec.CA.Province, orgSpec.CA.Locality, orgSpec.CA.OrganizationalUnit, orgSpec.CA.StreetAddress, orgSpec.CA.PostalCode, *genCaAlg)
 	if err != nil {
 		fmt.Printf("Error generating signCA for org %s:\n%v\n", orgName, err)
 		os.Exit(1)
@@ -557,7 +561,7 @@ func generatePeerOrg(baseDir string, orgSpec OrgSpec) {
 		os.Exit(1)
 	}
 
-	err = msp.GenerateVerifyingMSP(mspDir, signCA, tlsCA, orgSpec.EnableNodeOUs, "ecdsa")
+	err = msp.GenerateVerifyingMSP(mspDir, signCA, tlsCA, orgSpec.EnableNodeOUs, *genCaAlg)
 	if err != nil {
 		fmt.Printf("Error generating MSP for org %s:\n%v\n", orgName, err)
 		os.Exit(1)
@@ -580,7 +584,7 @@ func generatePeerOrg(baseDir string, orgSpec OrgSpec) {
 	adminUser := NodeSpec{
 		isAdmin:            true,
 		CommonName:         fmt.Sprintf("%s@%s", adminBaseName, orgName),
-		PublicKeyAlgorithm: ECDSA,
+		PublicKeyAlgorithm: *genClientAlg,
 	}
 
 	users = append(users, adminUser)
@@ -644,11 +648,42 @@ func generateNodes(baseDir string, nodes []NodeSpec, signCA *ca.CA, tlsCA *ca.CA
 				currentNodeType = msp.ADMIN
 			}
 			var err error
-			if (currentNodeType == msp.PEER || currentNodeType == msp.ORDERER) && genPqAlg != nil && *genPqAlg != "" {
-				err = msp.GenerateLocalMSP(nodeDir, node.CommonName, node.SANS, signCA, tlsCA, currentNodeType, nodeOUs, *genPqAlg)
-			} else {
-				err = msp.GenerateLocalMSP(nodeDir, node.CommonName, node.SANS, signCA, tlsCA, currentNodeType, nodeOUs, "ecdsa")
+
+			// Peer MSP Creation
+			if currentNodeType == msp.PEER || currentNodeType == msp.ADMIN {
+				alg := *genPeerAlg
+				if alg == "" {
+					alg = "ecdsa"
+				}
+				err = msp.GenerateLocalMSP(nodeDir, node.CommonName, node.SANS, signCA, tlsCA, currentNodeType, nodeOUs, alg)
 			}
+
+			// Orderer MSP Creation
+			if currentNodeType == msp.ORDERER {
+				alg := *genOrdererAlg
+				if alg == "" {
+					alg = "ecdsa"
+				}
+				err = msp.GenerateLocalMSP(nodeDir, node.CommonName, node.SANS, signCA, tlsCA, currentNodeType, nodeOUs, alg)
+			}
+
+			// Client MSP Creation
+			if currentNodeType == msp.CLIENT {
+				alg := *genClientAlg
+				if alg == "" {
+					alg = "ecdsa"
+				}
+				err = msp.GenerateLocalMSP(nodeDir, node.CommonName, node.SANS, signCA, tlsCA, currentNodeType, nodeOUs, alg)
+			}
+
+			/*
+				if (currentNodeType == msp.PEER || currentNodeType == msp.ORDERER) && genPqAlg != nil && *genPqAlg != "" {
+					err = msp.GenerateLocalMSP(nodeDir, node.CommonName, node.SANS, signCA, tlsCA, currentNodeType, nodeOUs, *genPqAlg)
+				} else {
+					err = msp.GenerateLocalMSP(nodeDir, node.CommonName, node.SANS, signCA, tlsCA, currentNodeType, nodeOUs, "ecdsa")
+				}
+			*/
+
 			if err != nil {
 				fmt.Printf("Error generating local MSP for %v:\n%v\n", node, err)
 				os.Exit(1)
@@ -668,8 +703,10 @@ func generateOrdererOrg(baseDir string, orgSpec OrgSpec) {
 	orderersDir := filepath.Join(orgDir, "orderers")
 	usersDir := filepath.Join(orgDir, "users")
 	adminCertsDir := filepath.Join(mspDir, "admincerts")
+
 	// generate signing CA
-	signCA, err := ca.NewCA(caDir, orgName, orgSpec.CA.CommonName, orgSpec.CA.Country, orgSpec.CA.Province, orgSpec.CA.Locality, orgSpec.CA.OrganizationalUnit, orgSpec.CA.StreetAddress, orgSpec.CA.PostalCode, *genPqAlg)
+	signCA, err := ca.NewCA(caDir, orgName, orgSpec.CA.CommonName, orgSpec.CA.Country, orgSpec.CA.Province, orgSpec.CA.Locality, orgSpec.CA.OrganizationalUnit, orgSpec.CA.StreetAddress, orgSpec.CA.PostalCode, *genCaAlg)
+
 	if err != nil {
 		fmt.Printf("Error generating signCA for org %s:\n%v\n", orgName, err)
 		os.Exit(1)
@@ -681,7 +718,7 @@ func generateOrdererOrg(baseDir string, orgSpec OrgSpec) {
 		os.Exit(1)
 	}
 
-	err = msp.GenerateVerifyingMSP(mspDir, signCA, tlsCA, orgSpec.EnableNodeOUs, orgSpec.CA.PublicKeyAlgorithm)
+	err = msp.GenerateVerifyingMSP(mspDir, signCA, tlsCA, orgSpec.EnableNodeOUs, *genCaAlg)
 	if err != nil {
 		fmt.Printf("Error generating MSP for org %s:\n%v\n", orgName, err)
 		os.Exit(1)
@@ -692,7 +729,7 @@ func generateOrdererOrg(baseDir string, orgSpec OrgSpec) {
 	adminUser := NodeSpec{
 		isAdmin:            true,
 		CommonName:         fmt.Sprintf("%s@%s", adminBaseName, orgName),
-		PublicKeyAlgorithm: ECDSA,
+		PublicKeyAlgorithm: *genClientAlg,
 	}
 
 	// generate an admin for the orderer org

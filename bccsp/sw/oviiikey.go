@@ -42,6 +42,7 @@ func (k *oviiiPrivateKey) SKI() []byte {
 	}
 	hash := sha256.New()
 	hash.Write(k.privKey.PublicKey)
+	//fmt.Printf("DEBUG: Generated SKI for oviii private key: %x\n", hash.Sum(nil))
 	return hash.Sum(nil)
 }
 
@@ -87,7 +88,7 @@ func (k *oviiiPublicKey) SKI() []byte {
 	hash := sha256.New()
 	hash.Write(k.pubKey)
 	ski := hash.Sum(nil)
-	//fmt.Printf("DEBUG: Generated SKI for Dilithium5 key: %x\n", ski) // Add this
+	//fmt.Printf("DEBUG: Generated SKI for oviii public key: %x\n", ski) // Add this
 	return ski
 }
 

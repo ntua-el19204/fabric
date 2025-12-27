@@ -1,0 +1,4 @@
+docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' \
+| grep -vE '^(golang:|georgekyr/golang-pqcrypto:|ubuntu:)' \
+| awk '{print $2}' \
+| xargs -r docker rmi -f

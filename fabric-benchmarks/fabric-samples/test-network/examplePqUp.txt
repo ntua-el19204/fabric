@@ -1,0 +1,7 @@
+./network.sh up \
+  --caAlg oviii \
+  --peerAlg ecdsa \
+  --ordererAlg ecdsa \
+  --clientAlg ecdsa
+
+./network.sh createChannel

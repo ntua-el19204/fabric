@@ -217,14 +217,35 @@ func (msp *bccspmsp) getSigningIdentityFromConf(sidInfo *m.SigningIdentityInfo) 
 		return nil, err
 	}
 
+	// MY CODE BELOW
+	if idPub == nil {
+		return nil, errors.New("getIdentityFromConf returned nil identity")
+	}
+	if pubKey == nil {
+		return nil, errors.New("getIdentityFromConf returned nil public key (likely OVIII public key import failed)")
+	}
+	ski := pubKey.SKI()
+	if len(ski) == 0 {
+		return nil, errors.New("public key SKI is empty")
+	}
+	// MY CODE ABOVE
+
 	// Find the matching private key in the BCCSP keystore
 	//fmt.Println("Public key SKI: ", pubKey.SKI())
 	privKey, err := msp.bccsp.GetKey(pubKey.SKI())
+
 	//fmt.Println(privKey, err)
 	// Less Secure: Attempt to import Private Key from KeyInfo, if BCCSP was not able to find the key
 	if err != nil {
+		//fmt.Println("Inside the fallback method!")
+		//fmt.Printf("GetKey failed for SKI=%x: %v\n", pubKey.SKI(), err)
 		mspLogger.Debugf("Could not find SKI [%s], trying KeyMaterial field: %+v\n", hex.EncodeToString(pubKey.SKI()), err)
 		if sidInfo.PrivateSigner == nil || sidInfo.PrivateSigner.KeyMaterial == nil {
+			//fmt.Println("Some error here")
+			//fmt.Println("The private signer is ", sidInfo.PrivateSigner)
+			//fmt.Println("The private signer key material is ", sidInfo.PrivateSigner.KeyMaterial)
+			//fmt.Println("The public key ski is", pubKey.SKI())
+			//fmt.Println(sidInfo.PrivateSigner, sidInfo.PrivateSigner.KeyMaterial)
 			//fmt.Println("Inside mspimpl.go in msp  ", sidInfo.PrivateSigner, sidInfo.PrivateSigner.KeyMaterial)
 			return nil, errors.New("KeyMaterial not found in SigningIdentityInfo")
 		}
@@ -233,6 +254,7 @@ func (msp *bccspmsp) getSigningIdentityFromConf(sidInfo *m.SigningIdentityInfo) 
 		if pemKey == nil {
 			return nil, errors.Errorf("%s: wrong PEM encoding", sidInfo.PrivateSigner.KeyIdentifier)
 		}
+
 		privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
 
 		// PQ signatures
@@ -287,7 +309,9 @@ func (msp *bccspmsp) getSigningIdentityFromConf(sidInfo *m.SigningIdentityInfo) 
 			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.OVIPPrivateKeyImportOpts{Temporary: true})
 		}
 		if err != nil {
+			//fmt.Println("oviii case")
 			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.OVIIIPrivateKeyImportOpts{Temporary: true})
+			//fmt.Println(privKey)
 		}
 		if err != nil {
 			privKey, err = msp.bccsp.KeyImport(pemKey.Bytes, &bccsp.OVVPrivateKeyImportOpts{Temporary: true})

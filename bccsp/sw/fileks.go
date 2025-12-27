@@ -150,11 +150,14 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 
 		return &aesPrivateKey{key, false}, nil
 	case "sk":
+		//fmt.Println("fileks.go start of the sk case")
 		// Load the private key
 		key, err := ks.loadPrivateKey(hex.EncodeToString(ski))
 		if err != nil {
 			return nil, fmt.Errorf("failed loading secret key [%x] [%s]", ski, err)
 		}
+
+		//fmt.Println("fileks.go after the load private key")
 
 		switch k := key.(type) {
 		case *ecdsa.PrivateKey:
@@ -196,6 +199,7 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		case *ovip.PrivateKey:
 			return &ovipPrivateKey{k}, nil
 		case *oviii.PrivateKey:
+			//fmt.Println("Inside oviii case")
 			return &oviiiPrivateKey{k}, nil
 		case *ovv.PrivateKey:
 			return &ovvPrivateKey{k}, nil
@@ -205,10 +209,14 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
 		}
 	case "pk":
 		// Load the public key
+		//fmt.Println("fileks.go start of the pk case")
+
 		key, err := ks.loadPublicKey(hex.EncodeToString(ski))
 		if err != nil {
 			return nil, fmt.Errorf("failed loading public key [%x] [%s]", ski, err)
 		}
+
+		//fmt.Println("fileks.go after the load public key")
 
 		switch k := key.(type) {
 		case *ecdsa.PublicKey:
@@ -613,6 +621,7 @@ func (ks *fileBasedKeyStore) searchKeystoreForSKI(ski []byte) (k bccsp.Key, err 
 		if f.IsDir() {
 			continue
 		}
+		// Comment this line to allow big UOV keys!!
 
 		if f.Size() > (1 << 16) { // 64k, somewhat arbitrary limit, considering even large keys
 			continue
@@ -676,6 +685,9 @@ func (ks *fileBasedKeyStore) searchKeystoreForSKI(ski []byte) (k bccsp.Key, err 
 			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go   ", "inside default in cases and the SKI is")
 			continue
 		}
+
+		//fmt.Println("The private Key ski is ", k.SKI())
+		//fmt.Println("The public key ski is ", ski)
 
 		if !bytes.Equal(k.SKI(), ski) {
 			//fmt.Println("Inside searchKeyStoreForSKI in fielks.go, inside cheching equal bytes", "key ski: ", k.SKI(), "ski: ", ski)

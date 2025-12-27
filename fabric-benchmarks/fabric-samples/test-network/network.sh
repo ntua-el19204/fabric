@@ -170,7 +170,13 @@ function createOrgs() {
     infoln "Creating Org1 Identities"
 
     set -x
-    cryptogen generate --pqalg "$PQALG" --config=./organizations/cryptogen/crypto-config-org1.yaml --output="organizations"
+    cryptogen generate \
+      --caAlg "$CA_ALG" \
+      --peerAlg "$PEER_ALG" \
+      --ordererAlg "$ORDERER_ALG" \
+      --clientAlg "$CLIENT_ALG" \
+      --config=./organizations/cryptogen/crypto-config-org1.yaml \
+      --output="organizations"
     res=$?
     { set +x; } 2>/dev/null
     if [ $res -ne 0 ]; then
@@ -180,7 +186,13 @@ function createOrgs() {
     infoln "Creating Org2 Identities"
 
     set -x
-    cryptogen generate --pqalg "$PQALG" --config=./organizations/cryptogen/crypto-config-org2.yaml --output="organizations"
+    cryptogen generate \
+      --caAlg "$CA_ALG" \
+      --peerAlg "$PEER_ALG" \
+      --ordererAlg "$ORDERER_ALG" \
+      --clientAlg "$CLIENT_ALG" \
+      --config=./organizations/cryptogen/crypto-config-org2.yaml \
+      --output="organizations"
     res=$?
     { set +x; } 2>/dev/null
     if [ $res -ne 0 ]; then
@@ -190,7 +202,13 @@ function createOrgs() {
     infoln "Creating Orderer Org Identities"
 
     set -x
-    cryptogen generate --pqalg "$PQALG" --config=./organizations/cryptogen/crypto-config-orderer.yaml --output="organizations"
+    cryptogen generate \
+      --caAlg "$CA_ALG" \
+      --peerAlg "$PEER_ALG" \
+      --ordererAlg "$ORDERER_ALG" \
+      --clientAlg "$CLIENT_ALG" \
+      --config=./organizations/cryptogen/crypto-config-orderer.yaml \
+      --output="organizations"
     res=$?
     { set +x; } 2>/dev/null
     if [ $res -ne 0 ]; then
@@ -537,6 +555,22 @@ fi
 while [[ $# -ge 1 ]] ; do
   key="$1"
   case $key in
+   --caAlg )
+    CA_ALG="$2"
+    shift
+    ;;
+  --peerAlg )
+    PEER_ALG="$2"
+    shift
+    ;;
+  --ordererAlg )
+    ORDERER_ALG="$2"
+    shift
+    ;;
+  --clientAlg )
+    CLIENT_ALG="$2"
+    shift
+    ;;
   -h )
     printHelp $MODE
     exit 0
@@ -633,6 +667,12 @@ while [[ $# -ge 1 ]] ; do
   esac
   shift
 done
+
+# ---- defaults for algorithm selection (used by cryptogen) ----
+: ${CA_ALG:="ecdsa"}
+: ${PEER_ALG:="ecdsa"}
+: ${ORDERER_ALG:="ecdsa"}
+: ${CLIENT_ALG:="ecdsa"}
 
 if [ $BFT -eq 1 ]; then
   export FABRIC_CFG_PATH=${PWD}/bft-config
