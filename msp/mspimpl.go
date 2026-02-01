@@ -233,7 +233,12 @@ func (msp *bccspmsp) getSigningIdentityFromConf(sidInfo *m.SigningIdentityInfo) 
 	// Find the matching private key in the BCCSP keystore
 	//fmt.Println("Public key SKI: ", pubKey.SKI())
 	privKey, err := msp.bccsp.GetKey(pubKey.SKI())
-
+	/*if err == nil {
+		mspLogger.Infof("GetKey succeeded for SKI=%x (keystore lookup/scan worked)", pubKey.SKI())
+	} else {
+		mspLogger.Infof("GetKey failed for SKI=%x: %v (will use KeyMaterial fallback)", pubKey.SKI(), err)
+	}
+	*/
 	//fmt.Println(privKey, err)
 	// Less Secure: Attempt to import Private Key from KeyInfo, if BCCSP was not able to find the key
 	if err != nil {
